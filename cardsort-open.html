@@ -6,62 +6,96 @@
   <title>Open Card Sort (Unlabeled Piles)</title>
 
   <style>
-    :root { --gap:12px; }
+    :root { --gap:14px; --purple:#a78bfa; --purple-text:#3b2f66; }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    h1 { font-size: 20px; margin: 0 0 6px 0; }
-    .sub { color:#555; font-size: 13px; margin: 0 0 14px 0; }
-    .toolbar { display:flex; gap:10px; align-items:center; margin: 8px 0 14px; flex-wrap: wrap; }
-    button { padding: 9px 12px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
-    button:hover { background:#f5f5f5; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--gap); align-items: start; }
-    .pile { background: #fafafa; border: 1px solid #ddd; border-radius: 10px; padding: 10px; min-height: 120px; position: relative; }
-    .pile-header { display:flex; gap:8px; align-items:center; margin-bottom: 6px; }
-    .pile-label { font-weight: 600; font-size: 13px; }
-    .pile-btn { font-size: 12px; padding: 6px 8px; margin-left: auto; }
-    .pile-list { min-height: 120px; }
-    .card { padding: 8px; margin: 6px 0; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: grab; }
-    .hint { font-size: 12px; color:#666; }
-    .footer { margin-top: 14px; display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
-    .danger { border-color:#f4c2c2; background:#fff6f6; }
-    .pile-title { font-weight: 600; font-size: 13px; margin: 0 0 6px 0; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
-    .wrap { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
-    .msg { font-size: 12px; color:#b00; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; color:#222; }
+    /* Header row */
+    .header { display:grid; grid-template-columns: 1fr auto; gap: var(--gap); align-items:start; margin-bottom: 8px; }
+    h1 { font-size: 20px; margin: 0 0 8px 0; }
+    .instructions { color:#444; font-size: 13px; margin: 0; max-width: 900px; }
+    .finishBtn {
+      padding: 10px 14px; border-radius: 10px; border: 1px solid #d9d2ff;
+      background: var(--purple); color: white; font-weight: 600; cursor: pointer;
+      box-shadow: 0 1px 0 rgba(0,0,0,.05);
+    }
+    .finishBtn:hover { filter: brightness(0.95); }
+    .finishBtn:disabled { opacity: .6; cursor: default; }
+
+    /* All cards panel */
+    .panel { background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px; padding: 12px; }
+    .panel h2 { font-size: 14px; margin: 0 0 8px 0; }
+    .allgrid { display:grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    .list { min-height: 220px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; }
+    .card { padding: 8px; margin: 6px 0; background: white; border: 1px solid #ddd; border-radius: 8px; cursor: grab; }
+
+    /* Piles area */
+    .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 0 8px; }
+    .addBtn, .delBtn {
+      padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
+    }
+    .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
+
+    .pilesGrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--gap); }
+    .pile { background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:10px; min-height: 160px; }
+    .pileHeader { display:flex; align-items:center; }
+    .pileLabel { font-weight:600; font-size: 13px; }
+    .spacer { flex:1; }
+    .pileList { min-height: 140px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; margin-top:8px; }
+
+    /* Exclude bin at bottom */
+    .exclude { background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:10px; }
+    .exclude h3 { margin:0 0 8px 0; font-size:14px; color:#a33; }
+    .hint { font-size:12px; color:#666; }
+
+    /* Small screens */
+    @media (max-width:700px){
+      .allgrid { grid-template-columns: 1fr; }
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
-  <h1>Sort the cards into as many piles as you wish</h1>
-  <p class="sub">Drag cards from “All cards” into piles. You may create or delete piles at any time. If a card doesn’t fit anywhere, drop it in <b>Exclude</b>.</p>
-
-  <div class="toolbar">
-    <button id="addPileBtn">+ Add pile</button>
-    <button id="finishBtn">Finish &amp; continue</button>
-    <span class="hint">We’ll save your piles and return you to the survey.</span>
-  </div>
-
-  <div class="wrap">
-    <div class="row">
-      <div class="pile">
-        <div class="pile-title">All cards</div>
-        <div id="all" class="pile-list"></div>
-        <p class="hint">Drag cards from here into your piles.</p>
-      </div>
-
-      <div class="pile danger">
-        <div class="pile-title">Exclude (discard)</div>
-        <div id="exclude" class="pile-list"></div>
-        <p class="hint">Drop here to exclude a card from your piles.</p>
-      </div>
+  <!-- Header with instructions (left) and Finish (right) -->
+  <div class="header">
+    <div>
+      <h1>Sort the cards into as many piles as you wish</h1>
+      <p class="instructions">
+        On these cards you will find descriptions of different goals and plans that one can have and find important in life.
+        Please read each of these cards carefully and sort the cards into several piles with respect to how important these
+        goals and plans are for you personally. Again, please begin on the left side with the pile of those goals and plans
+        which are most important to you. Please order those goals and plans that are less important or not important at all
+        to you into piles on the right side. You may build as many piles as you think necessary.
+      </p>
     </div>
-
-    <div id="pilesGrid" class="grid"></div>
+    <div>
+      <button id="finishBtn" class="finishBtn">Finish &amp; continue</button>
+    </div>
   </div>
 
-  <div class="footer">
-    <span id="validationMsg" class="msg" style="display:none;"></span>
+  <!-- All cards panel (two columns spanning full width) -->
+  <div class="panel" style="margin-bottom:14px;">
+    <h2>All cards</h2>
+    <div class="allgrid">
+      <div id="allA" class="list"></div>
+      <div id="allB" class="list"></div>
+    </div>
+    <p class="hint" style="margin-top:8px;">Drag cards from here into your piles below.</p>
+  </div>
+
+  <!-- Controls and piles (start with one pile on the left) -->
+  <div class="controlsRow">
+    <button id="addPileBtn" class="addBtn">+ Add pile</button>
+    <span class="hint">Create more piles and drag cards between them.</span>
+  </div>
+
+  <div id="pilesGrid" class="pilesGrid"></div>
+
+  <!-- Exclude bin at the bottom -->
+  <div class="exclude" style="margin-top:16px;">
+    <h3>Exclude (discard)</h3>
+    <div id="exclude" class="list"></div>
+    <p class="hint">Drop here to exclude a card from your piles.</p>
   </div>
 
   <script>
@@ -84,25 +118,24 @@
       "Determine my future by myself"
     ];
 
-    // Optional requirements (set to true to enforce)
-    const REQUIRE_AT_LEAST_ONE_PILE = false;
-    const REQUIRE_TWO_OR_MORE_PILES = false;
-    const REQUIRE_ALL_PLACED = false; // if true, no cards may remain in “All cards”
+    // Optional enforcement
+    const REQUIRE_ALL_PLACED = false;
 
     // Qualtrics/parent origin for postMessage security:
-    const targetOrigin = "*"; // ← EDIT ME later to e.g. "https://nyu.qualtrics.com"
+    const targetOrigin = "https://nyu.qualtrics.com"; // ← EDIT ME (use your survey’s domain)
 
     // =========================
-    // URL params (Prolific/Qualtrics IDs)
+    // IDs from query string (optional)
     // =========================
     const qs = new URLSearchParams(location.search);
     const prolificId = qs.get("pid") || "";
     const responseId = qs.get("rid") || "";
 
     // =========================
-    // Render cards & lists
+    // Build All-cards (two lists) and Exclude
     // =========================
-    const allList = document.getElementById("all");
+    const allA = document.getElementById("allA");
+    const allB = document.getElementById("allB");
     const excludeList = document.getElementById("exclude");
     const pilesGrid = document.getElementById("pilesGrid");
     let pileCounter = 0;
@@ -114,89 +147,92 @@
       el.textContent = text;
       return el;
     }
-    CARDS.forEach(c => allList.appendChild(makeCard(c)));
+    // Distribute cards across the two All lists for a natural two-column layout
+    CARDS.forEach((c, i) => (i % 2 === 0 ? allA : allB).appendChild(makeCard(c)));
 
     const listOptions = { group: "cards", animation: 150, ghostClass: "dragGhost" };
-    new Sortable(allList, listOptions);
+    new Sortable(allA, listOptions);
+    new Sortable(allB, listOptions);
     new Sortable(excludeList, listOptions);
 
+    // =========================
+    // Piles (unlabeled)
+    // =========================
     function createPile() {
       pileCounter++;
       const pileId = "pile_" + pileCounter;
 
-      const pile = document.createElement("div");
-      pile.className = "pile";
+      const wrap = document.createElement("div");
+      wrap.className = "pile";
 
       const header = document.createElement("div");
-      header.className = "pile-header";
+      header.className = "pileHeader";
 
       const label = document.createElement("div");
-      label.className = "pile-label";
-      label.textContent = "Pile " + pileCounter; // unlabeled piles (just an index)
+      label.className = "pileLabel";
+      label.textContent = "Pile " + pileCounter;
+
+      const spacer = document.createElement("div");
+      spacer.className = "spacer";
 
       const delBtn = document.createElement("button");
-      delBtn.className = "pile-btn";
+      delBtn.className = "delBtn";
       delBtn.textContent = "Delete pile";
 
       const list = document.createElement("div");
-      list.className = "pile-list";
+      list.className = "pileList";
       list.id = pileId;
 
       header.appendChild(label);
+      header.appendChild(spacer);
       header.appendChild(delBtn);
-      pile.appendChild(header);
-      pile.appendChild(list);
-      pilesGrid.appendChild(pile);
+      wrap.appendChild(header);
+      wrap.appendChild(list);
+      pilesGrid.appendChild(wrap);
 
       new Sortable(list, listOptions);
 
       delBtn.addEventListener("click", () => {
         const hasCards = list.children.length > 0;
-        if (hasCards && !confirm("This pile has cards. Delete anyway? Cards will move back to ‘All cards’."))
-          return;
-        Array.from(list.children).forEach(ch => allList.appendChild(ch));
-        pile.remove();
-        renumberPiles(); // keep numbering tidy
+        if (hasCards && !confirm("This pile has cards. Delete anyway? Cards will move back to All cards.")) return;
+        // Move any cards back to All (alternate columns)
+        Array.from(list.children).forEach((ch, i) => (i % 2 === 0 ? allA : allB).appendChild(ch));
+        wrap.remove();
+        renumberPiles();
       });
 
       return pileId;
     }
 
     function renumberPiles() {
-      const pileEls = Array.from(pilesGrid.children);
+      const piles = Array.from(pilesGrid.children);
       pileCounter = 0;
-      pileEls.forEach(el => {
+      piles.forEach(p => {
         pileCounter++;
-        el.querySelector(".pile-label").textContent = "Pile " + pileCounter;
+        p.querySelector(".pileLabel").textContent = "Pile " + pileCounter;
       });
     }
 
-    // Start with two empty piles (participants can delete/add)
-    createPile();
+    // Start with exactly ONE pile
     createPile();
 
     document.getElementById("addPileBtn").addEventListener("click", () => createPile());
 
     // =========================
-    // Collect results
+    // Data helpers
     // =========================
     function readList(el) {
       return Array.from(el.children).map(ch => ch.dataset.card);
     }
-
-    function getPilesData() {
-      const piles = [];
-      Array.from(pilesGrid.children).forEach((pileEl, idx) => {
-        const listDiv = pileEl.querySelector(".pile-list");
-        piles.push({
-          id: listDiv.id,
-          index: idx + 1,        // 1-based order shown to participant
-          cards: readList(listDiv)
-        });
-      });
-      return piles;
+    function getAllUnplaced() {
+      return readList(allA).concat(readList(allB));
     }
-
+    function getPilesData() {
+      return Array.from(pilesGrid.children).map((pileEl, idx) => {
+        const listDiv = pileEl.querySelector(".pileList");
+        return { id: listDiv.id, index: idx + 1, cards: readList(listDiv) };
+      });
+    }
     function getResults() {
       return {
         meta: {
@@ -207,35 +243,16 @@
           userAgent: navigator.userAgent
         },
         allCards: CARDS.slice(),
-        exclude: readList(excludeList),
         piles: getPilesData(),
-        unplaced: readList(allList) // remaining in “All cards”
+        exclude: readList(excludeList),
+        unplaced: getAllUnplaced()
       };
     }
     window.__startedAt = new Date().toISOString();
 
-    // =========================
-    // Validation (optional)
-    // =========================
     function validate(results) {
-      const msgEl = document.getElementById("validationMsg");
-      msgEl.style.display = "none";
-      msgEl.textContent = "";
-
-      const numPiles = results.piles.length;
-      if (REQUIRE_AT_LEAST_ONE_PILE && numPiles < 1) {
-        msgEl.textContent = "Please create at least one pile.";
-        msgEl.style.display = "inline";
-        return false;
-      }
-      if (REQUIRE_TWO_OR_MORE_PILES && numPiles < 2) {
-        msgEl.textContent = "Please create at least two piles.";
-        msgEl.style.display = "inline";
-        return false;
-      }
       if (REQUIRE_ALL_PLACED && results.unplaced.length > 0) {
-        msgEl.textContent = "Please sort all cards into piles or Exclude before continuing.";
-        msgEl.style.display = "inline";
+        alert("Please sort all cards into piles or Exclude before continuing.");
         return false;
       }
       return true;
@@ -244,18 +261,15 @@
     // =========================
     // Finish → postMessage to Qualtrics
     // =========================
-    document.getElementById("finishBtn").addEventListener("click", () => {
+    const finishBtn = document.getElementById("finishBtn");
+    finishBtn.addEventListener("click", () => {
       const results = getResults();
       if (!validate(results)) return;
 
-      // Send to parent (Qualtrics page)
       window.parent.postMessage({ type: "cardsort_done", payload: results }, targetOrigin);
-
-      // Minor UX feedback
-      const btn = document.getElementById("finishBtn");
-      btn.disabled = true;
-      btn.textContent = "Saving...";
-      setTimeout(() => { btn.textContent = "You can close this tab if nothing happens."; }, 2000);
+      finishBtn.disabled = true;
+      finishBtn.textContent = "Saving…";
+      setTimeout(() => { finishBtn.textContent = "You can close this tab if nothing happens."; }, 2000);
     });
   </script>
 </body>
