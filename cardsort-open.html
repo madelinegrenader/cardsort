@@ -18,38 +18,37 @@
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
   }
 
-  /* Two-column page layout:
-     Left column = fixed narrow All-cards lane
-     Right column = flexible piles area */
+  /* Two-column page layout — ALWAYS two columns */
   .layout {
     display:grid;
-    grid-template-columns: 360px 1fr;   /* <- make left column narrower so piles always fit */
+    grid-template-columns: minmax(320px, 360px) 1fr;  /* left fixed-ish, right flexible */
     gap: var(--gap);
     padding: 0 16px 24px;
+    align-items:start;
   }
 
   /* LEFT: All cards column (narrow) */
   .panel {
     background:#f8f9fb; border:1px solid #e6e7eb; border-radius:12px;
-    padding:16px; max-width:360px;   /* hard cap so it never expands */
+    padding:16px; width:360px; max-width:360px;   /* never expands */
   }
   .panelHead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 10px 0; }
   .panelHead h2 { font-size:16px; margin:0; }
   .inlineHint { font-size:13px; color:#666; }
 
-  /* Single, tall list for All cards (cards are slightly more compact) */
-  #allList.list { min-height:600px; }  /* tall source column, feels less scroll-y */
+  /* All cards list */
+  #allList.list { min-height:600px; }
   .list { background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; }
   .card {
-    font-size:15px;                 /* a touch smaller */
-    padding:10px;                   /* tighter card padding */
+    font-size:15px;
+    padding:10px;
     margin:8px 0;
     background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab;
-    max-width: 330px;               /* keep each card narrow as well */
+    max-width: 330px;
   }
 
   /* RIGHT: Piles column */
-  .rightPane { display:flex; flex-direction:column; gap:10px; min-width:520px; }
+  .rightPane { display:flex; flex-direction:column; gap:10px; min-width:0; }
   .controlsRow { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
   .addBtn, .delBtn { padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:nowrap; }
   .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
@@ -64,7 +63,7 @@
   .spacer { flex:1; }
   .pileList { min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-  /* “Most important →” centered to the right of Pile 1 */
+  /* “Most important →” anchored to the right of Pile 1 */
   .sideTag {
     position:absolute;
     top:50%; transform:translateY(-50%);
@@ -72,17 +71,9 @@
     text-align:left;
   }
 
-  /* Bottom note further down the page */
   .bottomGuide { margin: 6px 16px 0 16px; color:#444; font-size:14px; text-align:center; }
 
-  /* Responsive: on narrow screens, become single-column (left over right) */
-  @media (max-width: 980px){
-    .layout { grid-template-columns: 1fr; }
-    .panel { max-width:none; }
-    .rightPane { min-width:0; }
-    .sideTag { position:static; transform:none; right:auto; width:auto; margin:6px 0 -4px auto; text-align:right; }
-    #allList.list { min-height:360px; }
-  }
+  /* IMPORTANT: removed the mobile media query so it NEVER collapses to one column in Qualtrics */
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -132,7 +123,9 @@
       "Help others to find their purpose in life","Have large experience of life","Know myself and my feelings very well",
       "Be well educated and knowledgeable","Have control over my feelings"
     ];
-    const targetOrigin = "https://nyu.qualtrics.com"; // keep origin only
+
+    // IMPORTANT: Use your Qualtrics brand origin for secure postMessage
+    const targetOrigin = "https://nyu.qualtrics.com";
 
     /* ---------- Build DOM ---------- */
     const allList  = document.getElementById("allList");
@@ -145,7 +138,12 @@
     }
     CARDS.forEach(c => allList.appendChild(makeCard(c)));
 
-    const listOptions={ group:"cards", animation:150, ghostClass:"dragGhost", onEnd:()=>notifyHeight() };
+    const listOptions = {
+      group:"cards",
+      animation:150,
+      ghostClass:"dragGhost",
+      onEnd:()=>queueResize()
+    };
     new Sortable(allList, listOptions);
 
     let pileCounter=0;
@@ -160,10 +158,10 @@
       header.append(label,spacer,delBtn); wrap.append(header,list); pilesCol.append(wrap);
       new Sortable(list,listOptions);
 
-      delBtn.onclick=()=>{ Array.from(list.children).forEach(ch=>allList.appendChild(ch)); wrap.remove(); renumberPiles(); ensureSideTagAnchored(); notifyHeight(); };
+      delBtn.onclick=()=>{ Array.from(list.children).forEach(ch=>allList.appendChild(ch)); wrap.remove(); renumberPiles(); ensureSideTagAnchored(); queueResize(); };
 
-      ensureSideTagAnchored();  // make sure the tag is on the first pile
-      notifyHeight();
+      ensureSideTagAnchored();
+      queueResize();
       return list.id;
     }
     function renumberPiles(){
@@ -177,7 +175,6 @@
 
     /* ---------- “Most important →” tag anchored to Pile 1 center ---------- */
     function ensureSideTagAnchored(){
-      // remove old tag
       document.querySelectorAll('.sideTag').forEach(n=>n.remove());
       const firstPile = pilesCol.querySelector('.pile');
       if (!firstPile) return;
@@ -187,7 +184,7 @@
       firstPile.appendChild(tag);
     }
 
-    /* ---------- Data handshake to Qualtrics ---------- */
+    /* ---------- Data handshake to Qualtrics (unchanged) ---------- */
     function readList(el){ return Array.from(el.children).map(ch=>ch.dataset.card); }
     function getResults(){
       return {
@@ -207,23 +204,32 @@
       }
     });
 
-    /* ---------- Auto-height: start tall + keep resizing ---------- */
-    function notifyHeight(){
-      const h=Math.max(
+    /* ---------- Auto-height: iframe tells Qualtrics how tall it is ---------- */
+    let resizeTimer = null;
+    function postHeight() {
+      const h = Math.max(
         document.documentElement.scrollHeight,
         document.body.scrollHeight,
         document.documentElement.offsetHeight,
         document.body.offsetHeight
       );
-      parent.postMessage({ type:'iframesizer:height', height:h }, '*');
+      parent.postMessage({ type:'qualtrics-iframe-height', height:h }, targetOrigin);
     }
-    // start with extra content height to reduce early scroll, then keep resizing
-    const ro = new ResizeObserver(()=>notifyHeight());
-    ro.observe(document.body);
-    window.addEventListener('load', ()=>{ document.body.style.minHeight = '1200px'; notifyHeight(); });
-    setTimeout(notifyHeight, 120);
+    function queueResize(){
+      if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      resizeTimer = requestAnimationFrame(postHeight);
+    }
+
+    // Keep Qualtrics updated on any layout/content changes
+    const ro = new ResizeObserver(queueResize);
+    ro.observe(document.documentElement);
+
+    window.addEventListener('load', queueResize);
+    window.addEventListener('resize', queueResize);
+    setTimeout(queueResize, 120);
   </script>
 </body>
 </html>
+
 
 
