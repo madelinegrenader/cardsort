@@ -17,10 +17,10 @@
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
   }
 
-  /* Two fixed columns */
+  /* Always two columns */
   .layout {
     display:grid;
-    grid-template-columns: minmax(320px, 360px) 1fr;
+    grid-template-columns: 360px 1fr;
     gap: var(--gap);
     padding: 0 16px 24px;
     align-items:start;
@@ -29,7 +29,7 @@
   /* LEFT */
   .panel {
     background:#f8f9fb; border:1px solid #e6e7eb; border-radius:12px;
-    padding:16px; width:360px; max-width:360px;
+    padding:16px; max-width:360px;
   }
   .panelHead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 10px 0; }
   .panelHead h2 { font-size:16px; margin:0; }
@@ -41,28 +41,27 @@
     font-size:15px; padding:10px; margin:8px 0;
     background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab;
     max-width: 330px;
-    touch-action: none; /* improves drag on touch devices */
+    touch-action: none;        /* improves drag on touch devices */
   }
 
   /* RIGHT */
-  .rightPane { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .rightPane { display:flex; flex-direction:column; gap:10px; min-width:520px; }
   .controlsRow { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
   .addBtn, .delBtn { padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:nowrap; }
   .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-  .pilesColumn { display:flex; flex-direction:column; gap: var(--gap); }
+  .pilesColumn { position:relative; display:flex; flex-direction:column; gap: var(--gap); }
   .pile {
+    position:relative;
     background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:12px; min-height:200px;
   }
-  .pileHeader { display:flex; align-items:center; gap:8px; }
+  .pileHeader { display:flex; align-items:center; }
   .pileLabel { font-weight:600; font-size:14px; }
   .spacer { flex:1; }
   .pileList { min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-  /* Guide that should always be under the last pile */
-  .importanceGuide {
-    margin: 4px 4px 0 4px; color:#444; font-size:14px;
-  }
+  /* Bottom guide now lives under the piles */
+  .bottomGuide { margin: 6px 16px 0 16px; color:#444; font-size:14px; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -97,8 +96,8 @@
 
       <div id="pilesColumn" class="pilesColumn"></div>
 
-      <!-- This stays *after* the piles so it’s always under the bottom pile -->
-      <div id="importanceGuide" class="importanceGuide">↓ Less important or not important</div>
+      <!-- Guide stays after the piles so it's always under the bottom pile -->
+      <div class="bottomGuide">↓ Less important or not important</div>
     </div>
   </div>
 
@@ -126,43 +125,36 @@
     }
     CARDS.forEach(c => allList.appendChild(makeCard(c)));
 
-    // IMPORTANT: explicit group config so lists can always exchange items
+    // IMPORTANT: explicit group options on every list
     const listOptions = {
       group: { name: "cards", pull: true, put: true },
       animation: 150,
-      forceFallback: true,     // improves reliability across environments
+      forceFallback: true,
       ghostClass: "dragGhost",
-      onEnd: () => queueResize()
+      onEnd: () => notifyHeight()
     };
     new Sortable(allList, listOptions);
 
     let pileCounter=0;
-
     function createPile(){
       pileCounter++;
-      const wrap   = document.createElement("div"); wrap.className="pile";
-      const header = document.createElement("div"); header.className="pileHeader";
-      const label  = document.createElement("div"); label.className="pileLabel";
+      const wrap=document.createElement("div"); wrap.className="pile";
+      const header=document.createElement("div"); header.className="pileHeader";
+      const label=document.createElement("div"); label.className="pileLabel";
       label.textContent = (pileCounter === 1) ? "Pile 1 (Most Important)" : ("Pile " + pileCounter);
-      const spacer = document.createElement("div"); spacer.className="spacer";
-      const delBtn = document.createElement("button"); delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
-      const list   = document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
+      const spacer=document.createElement("div"); spacer.className="spacer";
+      const delBtn=document.createElement("button"); delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
+      const list=document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
 
-      header.append(label, spacer, delBtn);
-      wrap.append(header, list);
-      pilesCol.append(wrap);
-
+      header.append(label,spacer,delBtn); wrap.append(header,list); pilesCol.append(wrap);
       new Sortable(list, listOptions);
 
-      delBtn.onclick = () => {
-        // return cards to All cards
-        Array.from(list.children).forEach(ch => allList.appendChild(ch));
-        wrap.remove();
-        renumberPiles();
-        queueResize();
-      };
+      delBtn.addEventListener('click', function(){
+        Array.from(list.children).forEach(ch=>allList.appendChild(ch));
+        wrap.remove(); renumberPiles(); notifyHeight();
+      });
 
-      queueResize();
+      notifyHeight();
       return list.id;
     }
 
@@ -175,7 +167,7 @@
       });
     }
 
-    // Start with one pile at the top
+    // Start with one pile at top; new piles stack below
     createPile();
     document.getElementById("addPileBtn").addEventListener('click', createPile);
 
@@ -199,27 +191,22 @@
       }
     });
 
-    /* ---------- Auto-height to Qualtrics (no inner iframe scroll) ---------- */
-    let resizeTimer = null;
-    function postHeight() {
-      const h = Math.max(
+    /* ---------- Auto-height ---------- */
+    function notifyHeight(){
+      const h=Math.max(
         document.documentElement.scrollHeight,
         document.body.scrollHeight,
         document.documentElement.offsetHeight,
         document.body.offsetHeight
       );
-      parent.postMessage({ type:'qualtrics-iframe-height', height:h }, targetOrigin);
+      // use your newer type if you prefer; your Qualtrics JS listens for both
+      parent.postMessage({ type:'iframesizer:height', height:h }, targetOrigin);
     }
-    function queueResize(){
-      if (resizeTimer) cancelAnimationFrame(resizeTimer);
-      resizeTimer = requestAnimationFrame(postHeight);
-    }
-
-    const ro = new ResizeObserver(queueResize);
-    ro.observe(document.documentElement);
-    window.addEventListener('load', queueResize);
-    window.addEventListener('resize', queueResize);
-    setTimeout(queueResize, 150);
+    const ro = new ResizeObserver(()=>notifyHeight());
+    ro.observe(document.body);
+    window.addEventListener('load', ()=>{ document.body.style.minHeight = '1200px'; notifyHeight(); });
+    setTimeout(notifyHeight, 120);
   </script>
 </body>
 </html>
+
