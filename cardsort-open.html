@@ -3,109 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Open Card Sort (Unlabeled Piles)</title>
+  <title>Open Card Sort</title>
 
   <style>
-    :root { --gap:16px; --purple:#a78bfa; --purple-text:#3b2f66; }
+    :root { --gap:16px; }
     * { box-sizing: border-box; }
-
     html, body { margin:0; padding:0; height:auto; min-height:100%; overflow:visible; }
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:#222;
-      font-size: 18px;
-      line-height: 1.5;
+      color:#222; font-size:18px; line-height:1.5;
     }
 
-    /* Header: full-width instructions */
-    .header { display:block; margin: 16px; }
-    .instructions {
-      color:#444; font-size: 18px; line-height:1.6; margin:0;
-      background:#fafafa; border:1px solid #eee; border-radius: 10px; padding: 14px 16px;
+    .header { margin:16px; }
+    .instructions{
+      color:#444; font-size:18px; line-height:1.6;
+      background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px;
     }
 
-    /* All cards panel — fill width */
-    .panel {
-      background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
-      padding: 20px; margin: 0 16px 16px; max-width: none;
+    .panel{
+      background:#f8f9fb; border:1px solid #e6e7eb; border-radius:12px;
+      padding:20px; margin:0 16px 16px; max-width:none;
     }
-    .panelHead {
-      display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
-      margin: 0 0 10px 0;
-    }
-    .panelHead h2 { font-size: 16px; margin:0; }
-    .inlineHint { font-size:13px; color:#666; margin-left:6px; }
+    .panelHead{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 10px 0; }
+    .panelHead h2{ font-size:16px; margin:0; }
+    .inlineHint{ font-size:13px; color:#666; }
 
-    .allgrid {
-      display:grid;
-      grid-template-columns: repeat(2, minmax(320px, 1fr));
-      gap: var(--gap);
+    .allgrid{
+      display:grid; grid-template-columns:repeat(2, minmax(320px,1fr)); gap:var(--gap);
     }
-    .list { min-height: 260px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
-    .card { font-size:16px; padding: 12px; margin: 10px 0; background: white; border: 1px solid #ddd; border-radius: 10px; cursor: grab; }
+    .list{ min-height:260px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
+    .card{ font-size:16px; padding:12px; margin:10px 0; background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab; }
 
-    /* Controls above piles */
-    .controlsRow {
-      display:flex; gap:14px; align-items:flex-start; margin: 14px 16px 8px;
-      flex-wrap:wrap;
+    .controlsRow{ display:flex; gap:14px; align-items:center; margin:14px 16px 8px; }
+    .addBtn, .delBtn{
+      padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer;
     }
-    .controlsText { flex: 1 1 520px; font-size:14px; color:#444; }
-    .addBtn, .delBtn {
-      padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
-      white-space:nowrap;
-    }
-    .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
+    .addBtn:hover, .delBtn:hover{ background:#f4f4f4; }
 
-    /* Piles strip */
-    .pilesGrid {
-      display: flex;
-      flex-direction: row;
-      gap: var(--gap);
-      overflow-x: auto;
-      padding: 0 16px 12px;
-      width: 100%;
+    .pilesGrid{
+      display:flex; flex-direction:row; gap:var(--gap); overflow-x:auto; padding:0 16px 12px; width:100%;
     }
-    .pile {
-      flex: 0 0 320px;
-      background:#fafafa;
-      border:1px solid #e6e7eb;
-      border-radius:12px;
-      padding:12px;
-      min-height: 200px;
+    .pile{
+      flex:0 0 320px; background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:12px; min-height:200px;
     }
-    .pileHeader { display:flex; align-items:center; }
-    .pileLabel { font-weight:600; font-size: 14px; }
-    .spacer { flex:1; }
-    .pileList { min-height: 160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
+    .pileHeader{ display:flex; align-items:center; }
+    .pileLabel{ font-weight:600; font-size:14px; }
+    .spacer{ flex:1; }
+    .pileList{ min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-    /* Importance rail (below piles) */
-    #importance-rail {
-      display:flex; align-items:center; gap:12px; padding: 6px 16px 0; color:#444; font-size:14px;
-      margin-bottom: 8px;
+    #importance-rail{
+      display:flex; align-items:center; gap:12px; padding:6px 16px 0; color:#444; font-size:14px; margin-bottom:8px;
     }
-    #importance-rail .rail {
-      flex:1; height:4px; border-radius:999px;
-      background: linear-gradient(to right, #444 0%, #444 100%); opacity:.25;
-    }
+    #importance-rail .rail{ flex:1; height:4px; border-radius:999px; background:linear-gradient(to right,#444 0%,#444 100%); opacity:.25; }
 
-    /* Exclude bin: shorter + inline hint in header */
-    .exclude {
-      background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:12px;
-      margin: 0 16px 20px;
-    }
-    .excludeHead { display:flex; align-items:baseline; gap:10px; margin:0 0 8px 0; }
-    .excludeHead h3 { margin:0; font-size:16px; color:#a33; }
-    .hint, .inlineHint { font-size:13px; color:#666; }
-
-    /* one-card tall exclude list */
-    #exclude { max-height:64px; overflow:auto; }
-
-    @media (max-width: 700px){
-      .header { margin: 12px; }
-      .panel { margin: 0 12px 12px; }
-      .controlsRow { margin: 12px; }
-      .allgrid { grid-template-columns: 1fr; }
-      .pile { flex-basis: 280px; }
+    @media (max-width:700px){
+      .header{ margin:12px; }
+      .panel{ margin:0 12px 12px; }
+      .controlsRow{ margin:12px; }
+      .allgrid{ grid-template-columns:1fr; }
+      .pile{ flex-basis:280px; }
     }
   </style>
 
@@ -113,7 +69,7 @@
 </head>
 <body>
 
-  <!-- Full-width instructions -->
+  <!-- Instructions -->
   <div class="header">
     <p class="instructions">
       On these cards you will find descriptions of different goals and plans that one can have and find important in life.
@@ -125,7 +81,7 @@
   </div>
 
   <!-- All cards -->
-  <div class="panel" style="margin-bottom:14px;">
+  <div class="panel">
     <div class="panelHead">
       <h2>All cards</h2>
       <span class="inlineHint">Drag cards from here into your piles below.</span>
@@ -136,219 +92,92 @@
     </div>
   </div>
 
-  <!-- Controls + piles -->
+  <!-- Piles -->
   <div class="controlsRow">
-    <div class="controlsText">
-      Again, please begin on the left side with the pile of those goals and plans which are most important to you.
-      Please order those goals and plans that are less important or not important at all to you into piles on the right side.
-      You may build as many piles as you think necessary.
-    </div>
     <button id="addPileBtn" class="addBtn">+ Add pile</button>
   </div>
-
   <div id="pilesGrid" class="pilesGrid"></div>
 
-  <!-- Importance guide BELOW piles -->
+  <!-- Importance rail -->
   <div id="importance-rail" aria-hidden="true">
     <span>Most important</span>
     <div class="rail"></div>
     <span>Less important or not important</span>
   </div>
 
-  <!-- Exclude bin -->
-  <div class="exclude" style="margin-top:8px;">
-    <div class="excludeHead">
-      <h3>Exclude</h3>
-      <span class="inlineHint">Drop here to exclude a card from your piles.</span>
-    </div>
-    <div id="exclude" class="list"></div>
-  </div>
-
   <script>
-    // =========================
-    // CONFIG — EDIT THESE
-    // =========================
     const CARDS = [
-      "Have strong power of discernment",
-      "Not depend on someone else’s feelings",
-      "Determine my future by myself",
-      "Be autonomous in my feelings",
-      "Receive approval for my work",
-      "Have good friends who accept me the way I am",
-      "Be with people who set high value on my opinion",
-      "Have close friends who trust me",
-      "Be able to confide in a close friend at any time",
-      "Receive good advice on important decision",
-      "Not feel lonely",
-      "Leave my mark on this world",
-      "Be available to others who need to be comforted",
-      "Give my knowledge/experience on to others",
-      "Help others to find their purpose in life",
-      "Have large experience of life",
-      "Know myself and my feelings very well",
-      "Be well educated and knowledgeable",
-      "Have control over my feelings",
+      "Have strong power of discernment","Not depend on someone else’s feelings","Determine my future by myself",
+      "Be autonomous in my feelings","Receive approval for my work","Have good friends who accept me the way I am",
+      "Be with people who set high value on my opinion","Have close friends who trust me",
+      "Be able to confide in a close friend at any time","Receive good advice on important decision","Not feel lonely",
+      "Leave my mark on this world","Be available to others who need to be comforted","Give my knowledge/experience on to others",
+      "Help others to find their purpose in life","Have large experience of life","Know myself and my feelings very well",
+      "Be well educated and knowledgeable","Have control over my feelings"
     ];
 
-    const REQUIRE_ALL_PLACED = false;
-    const targetOrigin = "https://nyu.qualtrics.com"; // update if your brand domain differs
-
-    // IDs from query string (optional)
+    const targetOrigin = "https://nyu.qualtrics.com"; 
     const qs = new URLSearchParams(location.search);
     const prolificId = qs.get("pid") || "";
     const responseId = qs.get("rid") || "";
 
-    // Build All-cards (two lists) and Exclude
     const allA = document.getElementById("allA");
     const allB = document.getElementById("allB");
-    const excludeList = document.getElementById("exclude");
     const pilesGrid = document.getElementById("pilesGrid");
     let pileCounter = 0;
 
-    function makeCard(text) {
-      const el = document.createElement("div");
-      el.className = "card";
-      el.dataset.card = text;
-      el.textContent = text;
+    function makeCard(text){
+      const el=document.createElement("div");
+      el.className="card"; el.dataset.card=text; el.textContent=text;
       return el;
     }
-    CARDS.forEach((c, i) => (i % 2 === 0 ? allA : allB).appendChild(makeCard(c)));
+    CARDS.forEach((c,i)=> (i%2===0?allA:allB).appendChild(makeCard(c)));
 
-    const listOptions = {
-      group: "cards",
-      animation: 150,
-      ghostClass: "dragGhost",
-      onEnd: () => { notifyHeight(); dispatchEvent(new Event('cardsChanged')); }
-    };
-    new Sortable(allA, listOptions);
-    new Sortable(allB, listOptions);
-    new Sortable(excludeList, listOptions);
+    const listOptions={group:"cards",animation:150,ghostClass:"dragGhost",onEnd:()=>notifyHeight()};
+    new Sortable(allA,listOptions); new Sortable(allB,listOptions);
 
-    // Piles (unlabeled)
-    function createPile() {
+    function createPile(){
       pileCounter++;
-      const pileId = "pile_" + pileCounter;
-
-      const wrap = document.createElement("div");
-      wrap.className = "pile";
-
-      const header = document.createElement("div");
-      header.className = "pileHeader";
-
-      const label = document.createElement("div");
-      label.className = "pileLabel";
-      label.textContent = "Pile " + pileCounter;
-
-      const spacer = document.createElement("div");
-      spacer.className = "spacer";
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "delBtn";
-      delBtn.textContent = "Delete pile";
-
-      const list = document.createElement("div");
-      list.className = "pileList";
-      list.id = pileId;
-
-      header.appendChild(label);
-      header.appendChild(spacer);
-      header.appendChild(delBtn);
-      wrap.appendChild(header);
-      wrap.appendChild(list);
-      pilesGrid.appendChild(wrap);
-
-      new Sortable(list, listOptions);
-
-      delBtn.addEventListener("click", () => {
-        const hasCards = list.children.length > 0;
-        if (hasCards && !confirm("This pile has cards. Delete anyway? Cards will move back to All cards.")) return;
-        Array.from(list.children).forEach((ch, i) => (i % 2 === 0 ? allA : allB).appendChild(ch));
-        wrap.remove();
-        renumberPiles();
-        notifyHeight();
-      });
-
+      const wrap=document.createElement("div"); wrap.className="pile";
+      const header=document.createElement("div"); header.className="pileHeader";
+      const label=document.createElement("div"); label.className="pileLabel"; label.textContent="Pile "+pileCounter;
+      const spacer=document.createElement("div"); spacer.className="spacer";
+      const delBtn=document.createElement("button"); delBtn.className="delBtn"; delBtn.textContent="Delete pile";
+      const list=document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
+      header.append(label,spacer,delBtn); wrap.append(header,list); pilesGrid.append(wrap);
+      new Sortable(list,listOptions);
+      delBtn.onclick=()=>{Array.from(list.children).forEach((ch,i)=>(i%2===0?allA:allB).appendChild(ch));wrap.remove();renumberPiles();notifyHeight();};
       notifyHeight();
-      return pileId;
     }
-
-    function renumberPiles() {
-      const piles = Array.from(pilesGrid.children);
-      pileCounter = 0;
-      piles.forEach(p => {
-        pileCounter++;
-        p.querySelector(".pileLabel").textContent = "Pile " + pileCounter;
-      });
-    }
-
-    // Start with exactly ONE pile
+    function renumberPiles(){pileCounter=0;Array.from(pilesGrid.children).forEach(p=>{pileCounter++;p.querySelector(".pileLabel").textContent="Pile "+pileCounter;});}
     createPile();
+    document.getElementById("addPileBtn").onclick=()=>createPile();
 
-    document.getElementById("addPileBtn").addEventListener("click", () => {
-      createPile();
-    });
-
-    // Data helpers
-    function readList(el) {
-      return Array.from(el.children).map(ch => ch.dataset.card);
-    }
-    function getAllUnplaced() {
-      return readList(allA).concat(readList(allB));
-    }
-    function getPilesData() {
-      return Array.from(pilesGrid.children).map((pileEl, idx) => {
-        const listDiv = pileEl.querySelector(".pileList");
-        return { id: listDiv.id, index: idx + 1, cards: readList(listDiv) };
-      });
-    }
-    function getResults() {
+    function readList(el){return Array.from(el.children).map(ch=>ch.dataset.card);}
+    function getResults(){
       return {
-        meta: {
-          prolificId,
-          responseId,
-          startedAt: window.__startedAt || new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-          userAgent: navigator.userAgent
-        },
-        allCards: CARDS.slice(),
-        piles: getPilesData(),
-        exclude: readList(excludeList),
-        unplaced: getAllUnplaced()
+        meta:{prolificId,responseId,startedAt:window.__startedAt||new Date().toISOString(),finishedAt:new Date().toISOString(),userAgent:navigator.userAgent},
+        allCards:CARDS.slice(),
+        piles:Array.from(pilesGrid.children).map((p,idx)=>({id:p.querySelector(".pileList").id,index:idx+1,cards:readList(p.querySelector(".pileList"))})),
+        unplaced:readList(allA).concat(readList(allB))
       };
     }
-    window.__startedAt = new Date().toISOString();
+    window.__startedAt=new Date().toISOString();
 
-    function validate(results) {
-      if (REQUIRE_ALL_PLACED && results.unplaced.length > 0) {
-        alert("Please sort all cards into piles or Exclude before continuing.");
-        return false;
-      }
-      return true;
+    function notifyHeight(){
+      const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,document.documentElement.offsetHeight,document.body.offsetHeight);
+      parent.postMessage({type:'iframesizer:height',height:h},'*');
     }
+    new ResizeObserver(()=>notifyHeight()).observe(document.body);
+    window.addEventListener('load',notifyHeight);setTimeout(notifyHeight,100);
 
-    // Auto-resize → tell parent our height (no inner scrolling)
-    function notifyHeight() {
-      const h = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        document.documentElement.offsetHeight,
-        document.body.offsetHeight
-      );
-      parent.postMessage({ type: 'iframesizer:height', height: h }, '*');
-    }
-    const ro = new ResizeObserver(() => notifyHeight());
-    ro.observe(document.body);
-    window.addEventListener('load', notifyHeight);
-    setTimeout(notifyHeight, 100);
-
-    // Qualtrics handshake (parent controls save/continue)
-    window.addEventListener('message', (e) => {
-      const msg = e.data || {};
-      if (msg && msg.type === 'qualtrics:requestData') {
-        const payload = getResults();
-        if (!validate(payload)) return; // only blocks if REQUIRE_ALL_PLACED is true
-        const remaining = payload.unplaced.length;
-        parent.postMessage({ type: 'qualtrics:payload', payload: { ...payload, remainingInAllCards: remaining } }, targetOrigin);
+    // Handshake with Qualtrics
+    window.addEventListener('message',(e)=>{
+      const msg=e.data||{};
+      if(msg.type==='qualtrics:requestData'){
+        const payload=getResults();
+        const remaining=payload.unplaced.length;
+        parent.postMessage({type:'qualtrics:payload',payload:{...payload,remainingInAllCards:remaining}},targetOrigin);
       }
     });
   </script>
