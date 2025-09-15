@@ -11,76 +11,64 @@
   html, body { margin:0; padding:0; height:auto; min-height:100%; overflow:visible; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:#222; font-size:18px; line-height:1.5; }
 
-  /* Top instructions (top→down wording) */
   .header { margin:16px; }
   .instructions{
     color:#444; font-size:18px; line-height:1.6;
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
   }
 
-  /* Two-column page layout — ALWAYS two columns */
+  /* Two fixed columns */
   .layout {
     display:grid;
-    grid-template-columns: minmax(320px, 360px) 1fr;  /* left fixed-ish, right flexible */
+    grid-template-columns: minmax(320px, 360px) 1fr;
     gap: var(--gap);
     padding: 0 16px 24px;
     align-items:start;
   }
 
-  /* LEFT: All cards column (narrow) */
+  /* LEFT */
   .panel {
     background:#f8f9fb; border:1px solid #e6e7eb; border-radius:12px;
-    padding:16px; width:360px; max-width:360px;   /* never expands */
+    padding:16px; width:360px; max-width:360px;
   }
   .panelHead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 10px 0; }
   .panelHead h2 { font-size:16px; margin:0; }
   .inlineHint { font-size:13px; color:#666; }
 
-  /* All cards list */
   #allList.list { min-height:600px; }
   .list { background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; }
   .card {
-    font-size:15px;
-    padding:10px;
-    margin:8px 0;
+    font-size:15px; padding:10px; margin:8px 0;
     background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab;
     max-width: 330px;
+    touch-action: none; /* improves drag on touch devices */
   }
 
-  /* RIGHT: Piles column */
+  /* RIGHT */
   .rightPane { display:flex; flex-direction:column; gap:10px; min-width:0; }
   .controlsRow { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
   .addBtn, .delBtn { padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:nowrap; }
   .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-  .pilesColumn { position:relative; display:flex; flex-direction:column; gap: var(--gap); }
+  .pilesColumn { display:flex; flex-direction:column; gap: var(--gap); }
   .pile {
-    position:relative;
     background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:12px; min-height:200px;
   }
-  .pileHeader { display:flex; align-items:center; }
+  .pileHeader { display:flex; align-items:center; gap:8px; }
   .pileLabel { font-weight:600; font-size:14px; }
   .spacer { flex:1; }
   .pileList { min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-  /* “Most important →” anchored to the right of Pile 1 */
-  .sideTag {
-    position:absolute;
-    top:50%; transform:translateY(-50%);
-    right:-150px; width:140px; color:#444; font-size:14px; white-space:nowrap; pointer-events:none;
-    text-align:left;
+  /* Guide that should always be under the last pile */
+  .importanceGuide {
+    margin: 4px 4px 0 4px; color:#444; font-size:14px;
   }
-
-  .bottomGuide { margin: 6px 16px 0 16px; color:#444; font-size:14px; text-align:center; }
-
-  /* IMPORTANT: removed the mobile media query so it NEVER collapses to one column in Qualtrics */
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
 
-  <!-- Instructions (top→down ordering) -->
   <div class="header">
     <p class="instructions">
       On these cards you will find descriptions of different goals and plans that one can have and find important in life.
@@ -96,7 +84,7 @@
     <div class="panel">
       <div class="panelHead">
         <h2>All cards</h2>
-        <span class="inlineHint">Drag cards from here into your piles.</span>
+        <span class="inlineHint">Drag cards from here into your piles on the right.</span>
       </div>
       <div id="allList" class="list"></div>
     </div>
@@ -104,13 +92,15 @@
     <!-- RIGHT: Piles -->
     <div class="rightPane">
       <div class="controlsRow">
-        <button id="addPileBtn" class="addBtn">+ Add pile</button>
+        <button id="addPileBtn" class="addBtn" type="button">+ Add pile</button>
       </div>
+
       <div id="pilesColumn" class="pilesColumn"></div>
+
+      <!-- This stays *after* the piles so it’s always under the bottom pile -->
+      <div id="importanceGuide" class="importanceGuide">↓ Less important or not important</div>
     </div>
   </div>
-
-  <div class="bottomGuide">↓ Less important or not important</div>
 
   <script>
     /* ---------- Config ---------- */
@@ -123,8 +113,6 @@
       "Help others to find their purpose in life","Have large experience of life","Know myself and my feelings very well",
       "Be well educated and knowledgeable","Have control over my feelings"
     ];
-
-    // IMPORTANT: Use your Qualtrics brand origin for secure postMessage
     const targetOrigin = "https://nyu.qualtrics.com";
 
     /* ---------- Build DOM ---------- */
@@ -138,53 +126,60 @@
     }
     CARDS.forEach(c => allList.appendChild(makeCard(c)));
 
+    // IMPORTANT: explicit group config so lists can always exchange items
     const listOptions = {
-      group:"cards",
-      animation:150,
-      ghostClass:"dragGhost",
-      onEnd:()=>queueResize()
+      group: { name: "cards", pull: true, put: true },
+      animation: 150,
+      forceFallback: true,     // improves reliability across environments
+      ghostClass: "dragGhost",
+      onEnd: () => queueResize()
     };
     new Sortable(allList, listOptions);
 
     let pileCounter=0;
+
     function createPile(){
       pileCounter++;
-      const wrap=document.createElement("div"); wrap.className="pile";
-      const header=document.createElement("div"); header.className="pileHeader";
-      const label=document.createElement("div"); label.className="pileLabel"; label.textContent="Pile "+pileCounter;
-      const spacer=document.createElement("div"); spacer.className="spacer";
-      const delBtn=document.createElement("button"); delBtn.className="delBtn"; delBtn.textContent="Delete pile";
-      const list=document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
-      header.append(label,spacer,delBtn); wrap.append(header,list); pilesCol.append(wrap);
-      new Sortable(list,listOptions);
+      const wrap   = document.createElement("div"); wrap.className="pile";
+      const header = document.createElement("div"); header.className="pileHeader";
+      const label  = document.createElement("div"); label.className="pileLabel";
+      label.textContent = (pileCounter === 1) ? "Pile 1 (Most Important)" : ("Pile " + pileCounter);
+      const spacer = document.createElement("div"); spacer.className="spacer";
+      const delBtn = document.createElement("button"); delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
+      const list   = document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
 
-      delBtn.onclick=()=>{ Array.from(list.children).forEach(ch=>allList.appendChild(ch)); wrap.remove(); renumberPiles(); ensureSideTagAnchored(); queueResize(); };
+      header.append(label, spacer, delBtn);
+      wrap.append(header, list);
+      pilesCol.append(wrap);
 
-      ensureSideTagAnchored();
+      new Sortable(list, listOptions);
+
+      delBtn.onclick = () => {
+        // return cards to All cards
+        Array.from(list.children).forEach(ch => allList.appendChild(ch));
+        wrap.remove();
+        renumberPiles();
+        queueResize();
+      };
+
       queueResize();
       return list.id;
     }
+
     function renumberPiles(){
-      pileCounter=0;
-      Array.from(pilesCol.children).forEach(p=>{ pileCounter++; p.querySelector(".pileLabel").textContent="Pile "+pileCounter; });
+      const piles = Array.from(pilesCol.children);
+      pileCounter = piles.length;
+      piles.forEach((p, i) => {
+        const lab = p.querySelector(".pileLabel");
+        lab.textContent = (i === 0) ? "Pile 1 (Most Important)" : "Pile " + (i+1);
+      });
     }
 
-    // Start with one pile at top; new piles stack below
+    // Start with one pile at the top
     createPile();
-    document.getElementById("addPileBtn").onclick=()=>createPile();
+    document.getElementById("addPileBtn").addEventListener('click', createPile);
 
-    /* ---------- “Most important →” tag anchored to Pile 1 center ---------- */
-    function ensureSideTagAnchored(){
-      document.querySelectorAll('.sideTag').forEach(n=>n.remove());
-      const firstPile = pilesCol.querySelector('.pile');
-      if (!firstPile) return;
-      const tag=document.createElement('div');
-      tag.className='sideTag';
-      tag.textContent='Most important →';
-      firstPile.appendChild(tag);
-    }
-
-    /* ---------- Data handshake to Qualtrics (unchanged) ---------- */
+    /* ---------- Data handshake to Qualtrics ---------- */
     function readList(el){ return Array.from(el.children).map(ch=>ch.dataset.card); }
     function getResults(){
       return {
@@ -204,7 +199,7 @@
       }
     });
 
-    /* ---------- Auto-height: iframe tells Qualtrics how tall it is ---------- */
+    /* ---------- Auto-height to Qualtrics (no inner iframe scroll) ---------- */
     let resizeTimer = null;
     function postHeight() {
       const h = Math.max(
@@ -220,16 +215,11 @@
       resizeTimer = requestAnimationFrame(postHeight);
     }
 
-    // Keep Qualtrics updated on any layout/content changes
     const ro = new ResizeObserver(queueResize);
     ro.observe(document.documentElement);
-
     window.addEventListener('load', queueResize);
     window.addEventListener('resize', queueResize);
-    setTimeout(queueResize, 120);
+    setTimeout(queueResize, 150);
   </script>
 </body>
 </html>
-
-
-
