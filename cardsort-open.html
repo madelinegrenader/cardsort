@@ -15,14 +15,13 @@
   .instructions{
     color:#444; font-size:18px; line-height:1.6;
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
-    /* keep selection enabled in instructions */
-    -webkit-user-select: text; user-select: text;
+    -webkit-user-select: text; user-select: text; /* still allow copying instructions */
   }
 
   /* Always two columns; center and cap the board width */
   .layout {
     display:grid;
-    grid-template-columns: 360px minmax(520px, 680px); /* LEFT fixed, RIGHT capped */
+    grid-template-columns: 360px minmax(520px, 680px);
     gap: var(--gap);
     padding: 0 16px 24px;
     align-items:start;
@@ -30,7 +29,7 @@
     margin: 0 auto;
   }
 
-  /* Disable text selection only in the interactive area so dragging doesn’t highlight text */
+  /* Disable text selection in the interactive area */
   .panel, .panel *,.rightPane, .rightPane *, .layout {
     -webkit-user-select: none; -moz-user-select:none; -ms-user-select:none; user-select:none;
   }
@@ -50,16 +49,15 @@
     font-size:15px; padding:10px; margin:8px 0;
     background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab;
     max-width: 330px;
-    touch-action: none;        /* improves drag on touch devices */
+    touch-action: none;
   }
 
-  /* RIGHT (capped width so content never gets cut off) */
+  /* RIGHT */
   .rightPane {
     display:flex; flex-direction:column; gap:10px;
     width:100%; min-width:520px; max-width:680px;
   }
 
-  /* Add-pile row now left-aligned (top-left of piles area) */
   .controlsRow {
     display:flex; align-items:center; gap:12px;
     justify-content:flex-start;
@@ -71,12 +69,12 @@
   }
   .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-  .pilesColumn { position:relative; display:flex; flex-direction:column; gap: var(--gap); }
+  .pilesColumn { display:flex; flex-direction:column; gap: var(--gap); }
 
   .pile {
     position:relative;
     background:#fafafa; border:1px solid #e6e7eb; border-radius:12px;
-    padding:12px 12px 56px;      /* extra bottom space for bottom-left delete button */
+    padding:12px 12px 56px; 
     min-height:200px;
   }
   .pileHeader { display:flex; align-items:center; }
@@ -88,10 +86,8 @@
     border-radius:10px; padding:12px; margin-top:8px;
   }
 
-  /* Delete button anchored bottom-left of each pile */
   .delBtn { position:absolute; left:12px; bottom:12px; }
 
-  /* Bottom guide under the piles — arrow removed */
   .bottomGuide { margin: 6px 16px 0 16px; color:#444; font-size:14px; }
 </style>
 
@@ -144,7 +140,6 @@
     ];
     const targetOrigin = "https://nyu.qualtrics.com";
 
-    /* ---------- Build DOM ---------- */
     const allList  = document.getElementById("allList");
     const pilesCol = document.getElementById("pilesColumn");
 
@@ -155,7 +150,6 @@
     }
     CARDS.forEach(c => allList.appendChild(makeCard(c)));
 
-    // Explicit group options on every list (reliable across embedded iframes)
     const listOptions = {
       group: { name: "cards", pull: true, put: true },
       animation: 150,
@@ -166,7 +160,7 @@
     new Sortable(allList, listOptions);
 
     let pileCounter=0;
-    function createPile(){
+    function createPile(noDelete=false){
       pileCounter++;
       const wrap   = document.createElement("div"); wrap.className="pile";
       const header = document.createElement("div"); header.className="pileHeader";
@@ -175,20 +169,24 @@
       const spacer = document.createElement("div"); spacer.className="spacer";
 
       const list   = document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
-      const delBtn = document.createElement("button"); delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
-
       header.append(label, spacer);
-      wrap.append(header, list, delBtn);     // delete button at bottom-left via CSS
+      wrap.append(header, list);
+
+      // Only add delete button if allowed
+      if (!noDelete) {
+        const delBtn = document.createElement("button");
+        delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
+        wrap.append(delBtn);
+        delBtn.addEventListener('click', function(){
+          Array.from(list.children).forEach(ch => allList.appendChild(ch));
+          wrap.remove();
+          renumberPiles();
+          notifyHeight();
+        });
+      }
+
       pilesCol.append(wrap);
-
       new Sortable(list, listOptions);
-
-      delBtn.addEventListener('click', function(){
-        Array.from(list.children).forEach(ch => allList.appendChild(ch));
-        wrap.remove();
-        renumberPiles();
-        notifyHeight();
-      });
 
       notifyHeight();
       return list.id;
@@ -203,9 +201,11 @@
       });
     }
 
-    // Start with one pile at top; new piles stack below
-    createPile();
-    document.getElementById("addPileBtn").addEventListener('click', createPile);
+    // Start with two piles (both without delete buttons)
+    createPile(true);
+    createPile(true);
+
+    document.getElementById("addPileBtn").addEventListener('click', ()=>createPile(false));
 
     /* ---------- Data handshake to Qualtrics ---------- */
     function readList(el){ return Array.from(el.children).map(ch=>ch.dataset.card); }
@@ -244,4 +244,3 @@
   </script>
 </body>
 </html>
-
