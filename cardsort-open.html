@@ -15,6 +15,8 @@
   .instructions{
     color:#444; font-size:18px; line-height:1.6;
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
+    /* keep selection enabled in instructions */
+    -webkit-user-select: text; user-select: text;
   }
 
   /* Always two columns; center and cap the board width */
@@ -26,6 +28,11 @@
     align-items:start;
     width: min(1200px, 100%);
     margin: 0 auto;
+  }
+
+  /* Disable text selection only in the interactive area so dragging doesn’t highlight text */
+  .panel, .panel *,.rightPane, .rightPane *, .layout {
+    -webkit-user-select: none; -moz-user-select:none; -ms-user-select:none; user-select:none;
   }
 
   /* LEFT */
@@ -55,7 +62,7 @@
   /* Add-pile row now left-aligned (top-left of piles area) */
   .controlsRow {
     display:flex; align-items:center; gap:12px;
-    justify-content:flex-start; /* was flex-end */
+    justify-content:flex-start;
   }
 
   .addBtn, .delBtn {
@@ -84,7 +91,7 @@
   /* Delete button anchored bottom-left of each pile */
   .delBtn { position:absolute; left:12px; bottom:12px; }
 
-  /* Bottom guide now lives under the piles */
+  /* Bottom guide under the piles — arrow removed */
   .bottomGuide { margin: 6px 16px 0 16px; color:#444; font-size:14px; }
 </style>
 
@@ -120,8 +127,7 @@
 
       <div id="pilesColumn" class="pilesColumn"></div>
 
-      <!-- Guide stays after the piles so it's always under the bottom pile -->
-      <div class="bottomGuide">↓ Less important or not important</div>
+      <div class="bottomGuide">Less important or not important</div>
     </div>
   </div>
 
@@ -229,7 +235,7 @@
         document.documentElement.offsetHeight,
         document.body.offsetHeight
       );
-      parent.postMessage({ type:'iframesizer:height', height:h }, targetOrigin); /* your Qualtrics JS accepts this */
+      parent.postMessage({ type:'iframesizer:height', height:h }, targetOrigin);
     }
     const ro = new ResizeObserver(()=>notifyHeight());
     ro.observe(document.body);
