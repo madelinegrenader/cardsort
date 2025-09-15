@@ -14,54 +14,90 @@
       color:#222; font-size:18px; line-height:1.5;
     }
 
+    /* Top instructions */
     .header { margin:16px; }
     .instructions{
       color:#444; font-size:18px; line-height:1.6;
-      background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px;
+      background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
     }
 
-    .panel{
+    /* Two-column layout: left = All cards, right = piles */
+    .layout {
+      display:grid;
+      grid-template-columns: 420px 1fr; /* left fixed-ish, right flexible */
+      gap: var(--gap);
+      padding: 0 16px 16px;
+    }
+
+    /* Left column: All cards */
+    .panel {
       background:#f8f9fb; border:1px solid #e6e7eb; border-radius:12px;
-      padding:20px; margin:0 16px 16px; max-width:none;
+      padding:20px; max-width:none;
     }
-    .panelHead{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 10px 0; }
-    .panelHead h2{ font-size:16px; margin:0; }
-    .inlineHint{ font-size:13px; color:#666; }
+    .panelHead { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0 0 10px 0; }
+    .panelHead h2 { font-size:16px; margin:0; }
+    .inlineHint { font-size:13px; color:#666; }
 
-    .allgrid{
-      display:grid; grid-template-columns:repeat(2, minmax(320px,1fr)); gap:var(--gap);
+    .allgrid {
+      display:grid;
+      grid-template-columns: 1fr; /* single column stack for clarity */
+      gap: var(--gap);
     }
-    .list{ min-height:260px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
-    .card{ font-size:16px; padding:12px; margin:10px 0; background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab; }
+    .list {
+      min-height:260px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px;
+    }
+    .card {
+      font-size:16px; padding:12px; margin:10px 0; background:#fff; border:1px solid #ddd; border-radius:10px; cursor:grab;
+    }
 
-    .controlsRow{ display:flex; gap:14px; align-items:center; margin:14px 16px 8px; }
-    .addBtn, .delBtn{
-      padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer;
-    }
-    .addBtn:hover, .delBtn:hover{ background:#f4f4f4; }
+    /* Right column: piles + vertical importance guide */
+    .rightPane { display:flex; flex-direction:column; gap:8px; }
 
-    .pilesGrid{
-      display:flex; flex-direction:row; gap:var(--gap); overflow-x:auto; padding:0 16px 12px; width:100%;
+    .controlsRow {
+      display:flex; justify-content:flex-end; align-items:center; gap:12px;
+      /* keep it minimal per your request—no extra instruction line here */
     }
-    .pile{
-      flex:0 0 320px; background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:12px; min-height:200px;
+    .addBtn, .delBtn {
+      padding:8px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; cursor:pointer; white-space:nowrap;
     }
-    .pileHeader{ display:flex; align-items:center; }
-    .pileLabel{ font-weight:600; font-size:14px; }
-    .spacer{ flex:1; }
-    .pileList{ min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
+    .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-    #importance-rail{
-      display:flex; align-items:center; gap:12px; padding:6px 16px 0; color:#444; font-size:14px; margin-bottom:8px;
+    /* Piles area with a narrow importance column on the right */
+    .pilesWrap {
+      display:grid;
+      grid-template-columns: 1fr 180px; /* piles column + importance column */
+      gap: 12px;
+      align-items:start;
     }
-    #importance-rail .rail{ flex:1; height:4px; border-radius:999px; background:linear-gradient(to right,#444 0%,#444 100%); opacity:.25; }
 
-    @media (max-width:700px){
-      .header{ margin:12px; }
-      .panel{ margin:0 12px 12px; }
-      .controlsRow{ margin:12px; }
-      .allgrid{ grid-template-columns:1fr; }
-      .pile{ flex-basis:280px; }
+    /* Vertical stack of piles */
+    .pilesColumn {
+      display:flex; flex-direction:column; gap: var(--gap);
+      overflow: visible;
+    }
+    .pile {
+      background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:12px; min-height:200px;
+    }
+    .pileHeader { display:flex; align-items:center; }
+    .pileLabel { font-weight:600; font-size:14px; }
+    .spacer { flex:1; }
+    .pileList { min-height:160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
+
+    /* Importance column: top = Most important, bottom = Less important */
+    .importanceCol {
+      position: sticky; top: 8px; /* stays visible as they scroll piles */
+      height: calc(100vh - 120px); /* approximate viewport minus header */
+      display:flex; flex-direction:column; justify-content:space-between;
+      padding:6px 8px; color:#444; font-size:14px;
+    }
+    .importanceCol .topTag { align-self:flex-end; } /* sits to the right of pile 1 */
+    .importanceCol .bottomTag { align-self:center; opacity:.9; }
+
+    @media (max-width: 980px){
+      .layout { grid-template-columns: 1fr; }
+      .pilesWrap { grid-template-columns: 1fr; }
+      .importanceCol { position:static; height:auto; flex-direction:row; justify-content:space-between; }
+      .importanceCol .bottomTag { align-self:flex-end; }
     }
   </style>
 
@@ -69,117 +105,216 @@
 </head>
 <body>
 
-  <!-- Instructions -->
+  <!-- Instructions (now describe top→down ordering) -->
   <div class="header">
     <p class="instructions">
       On these cards you will find descriptions of different goals and plans that one can have and find important in life.
       Please read each of these cards carefully and sort the cards into several piles with respect to how important these
-      goals and plans are for you personally. Again, please begin on the left side with the pile of those goals and plans
+      goals and plans are for you personally. Again, please begin at the <strong>top</strong> with the pile of those goals and plans
       which are most important to you. Please order those goals and plans that are less important or not important at all
-      to you into piles on the right side. You may build as many piles as you think necessary.
+      to you into piles further <strong>down the page</strong>. You may build as many piles as you think necessary.
     </p>
   </div>
 
-  <!-- All cards -->
-  <div class="panel">
-    <div class="panelHead">
-      <h2>All cards</h2>
-      <span class="inlineHint">Drag cards from here into your piles below.</span>
+  <div class="layout">
+    <!-- LEFT: All cards -->
+    <div class="panel">
+      <div class="panelHead">
+        <h2>All cards</h2>
+        <span class="inlineHint">Drag cards from here into your piles on the right.</span>
+      </div>
+      <div class="allgrid">
+        <div id="allList" class="list"></div>
+      </div>
     </div>
-    <div class="allgrid">
-      <div id="allA" class="list"></div>
-      <div id="allB" class="list"></div>
+
+    <!-- RIGHT: Piles + vertical importance guide -->
+    <div class="rightPane">
+      <div class="controlsRow">
+        <button id="addPileBtn" class="addBtn">+ Add pile</button>
+      </div>
+
+      <div class="pilesWrap">
+        <!-- Piles column: Pile 1 top, then new piles stack below -->
+        <div id="pilesColumn" class="pilesColumn"></div>
+
+        <!-- Importance column to the right of Pile 1; bottom note down the page -->
+        <div class="importanceCol" aria-hidden="true">
+          <div class="topTag">Most important →</div>
+          <div class="bottomTag">↓ Less important or not important</div>
+        </div>
+      </div>
     </div>
-  </div>
-
-  <!-- Piles -->
-  <div class="controlsRow">
-    <button id="addPileBtn" class="addBtn">+ Add pile</button>
-  </div>
-  <div id="pilesGrid" class="pilesGrid"></div>
-
-  <!-- Importance rail -->
-  <div id="importance-rail" aria-hidden="true">
-    <span>Most important</span>
-    <div class="rail"></div>
-    <span>Less important or not important</span>
   </div>
 
   <script>
+    // =========================
+    // CONFIG
+    // =========================
     const CARDS = [
-      "Have strong power of discernment","Not depend on someone else’s feelings","Determine my future by myself",
-      "Be autonomous in my feelings","Receive approval for my work","Have good friends who accept me the way I am",
-      "Be with people who set high value on my opinion","Have close friends who trust me",
-      "Be able to confide in a close friend at any time","Receive good advice on important decision","Not feel lonely",
-      "Leave my mark on this world","Be available to others who need to be comforted","Give my knowledge/experience on to others",
-      "Help others to find their purpose in life","Have large experience of life","Know myself and my feelings very well",
-      "Be well educated and knowledgeable","Have control over my feelings"
+      "Have strong power of discernment",
+      "Not depend on someone else’s feelings",
+      "Determine my future by myself",
+      "Be autonomous in my feelings",
+      "Receive approval for my work",
+      "Have good friends who accept me the way I am",
+      "Be with people who set high value on my opinion",
+      "Have close friends who trust me",
+      "Be able to confide in a close friend at any time",
+      "Receive good advice on important decision",
+      "Not feel lonely",
+      "Leave my mark on this world",
+      "Be available to others who need to be comforted",
+      "Give my knowledge/experience on to others",
+      "Help others to find their purpose in life",
+      "Have large experience of life",
+      "Know myself and my feelings very well",
+      "Be well educated and knowledgeable",
+      "Have control over my feelings",
     ];
 
-    const targetOrigin = "https://nyu.qualtrics.com"; 
+    // Qualtrics origin for security (update if needed)
+    const targetOrigin = "https://nyu.qualtrics.com";
+
+    // Optional querystring IDs
     const qs = new URLSearchParams(location.search);
     const prolificId = qs.get("pid") || "";
     const responseId = qs.get("rid") || "";
 
-    const allA = document.getElementById("allA");
-    const allB = document.getElementById("allB");
-    const pilesGrid = document.getElementById("pilesGrid");
-    let pileCounter = 0;
+    // DOM
+    const allList   = document.getElementById("allList");
+    const pilesCol  = document.getElementById("pilesColumn");
 
+    // Build All cards (single tall list in left column)
     function makeCard(text){
-      const el=document.createElement("div");
-      el.className="card"; el.dataset.card=text; el.textContent=text;
+      const el = document.createElement("div");
+      el.className = "card";
+      el.dataset.card = text;
+      el.textContent = text;
       return el;
     }
-    CARDS.forEach((c,i)=> (i%2===0?allA:allB).appendChild(makeCard(c)));
+    CARDS.forEach(c => allList.appendChild(makeCard(c)));
 
-    const listOptions={group:"cards",animation:150,ghostClass:"dragGhost",onEnd:()=>notifyHeight()};
-    new Sortable(allA,listOptions); new Sortable(allB,listOptions);
+    // Drag options (shared group)
+    const listOptions = {
+      group: "cards",
+      animation: 150,
+      ghostClass: "dragGhost",
+      onEnd: () => notifyHeight()
+    };
+    new Sortable(allList, listOptions);
 
-    function createPile(){
+    // Piles (vertical stack)
+    let pileCounter = 0;
+
+    function createPile() {
       pileCounter++;
-      const wrap=document.createElement("div"); wrap.className="pile";
-      const header=document.createElement("div"); header.className="pileHeader";
-      const label=document.createElement("div"); label.className="pileLabel"; label.textContent="Pile "+pileCounter;
-      const spacer=document.createElement("div"); spacer.className="spacer";
-      const delBtn=document.createElement("button"); delBtn.className="delBtn"; delBtn.textContent="Delete pile";
-      const list=document.createElement("div"); list.className="pileList"; list.id="pile_"+pileCounter;
-      header.append(label,spacer,delBtn); wrap.append(header,list); pilesGrid.append(wrap);
-      new Sortable(list,listOptions);
-      delBtn.onclick=()=>{Array.from(list.children).forEach((ch,i)=>(i%2===0?allA:allB).appendChild(ch));wrap.remove();renumberPiles();notifyHeight();};
-      notifyHeight();
-    }
-    function renumberPiles(){pileCounter=0;Array.from(pilesGrid.children).forEach(p=>{pileCounter++;p.querySelector(".pileLabel").textContent="Pile "+pileCounter;});}
-    createPile();
-    document.getElementById("addPileBtn").onclick=()=>createPile();
+      const wrap = document.createElement("div");
+      wrap.className = "pile";
 
-    function readList(el){return Array.from(el.children).map(ch=>ch.dataset.card);}
-    function getResults(){
+      const header = document.createElement("div");
+      header.className = "pileHeader";
+
+      const label = document.createElement("div");
+      label.className = "pileLabel";
+      label.textContent = "Pile " + pileCounter;
+
+      const spacer = document.createElement("div");
+      spacer.className = "spacer";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "delBtn";
+      delBtn.textContent = "Delete pile";
+
+      const list = document.createElement("div");
+      list.className = "pileList";
+      list.id = "pile_" + pileCounter;
+
+      header.append(label, spacer, delBtn);
+      wrap.append(header, list);
+      pilesCol.appendChild(wrap);
+
+      new Sortable(list, listOptions);
+
+      delBtn.addEventListener("click", () => {
+        // move cards back to All cards (append to end)
+        Array.from(list.children).forEach(ch => allList.appendChild(ch));
+        wrap.remove();
+        renumberPiles();
+        notifyHeight();
+      });
+
+      notifyHeight();
+      return list.id;
+    }
+
+    function renumberPiles() {
+      pileCounter = 0;
+      Array.from(pilesCol.children).forEach(p => {
+        pileCounter++;
+        p.querySelector(".pileLabel").textContent = "Pile " + pileCounter;
+      });
+    }
+
+    // Start with exactly ONE pile at top
+    createPile();
+
+    // Add pile button appends below
+    document.getElementById("addPileBtn").addEventListener("click", () => createPile());
+
+    // Data helpers
+    function readList(el) {
+      return Array.from(el.children).map(ch => ch.dataset.card);
+    }
+    function getPilesData() {
+      return Array.from(pilesCol.children).map((pileEl, idx) => {
+        const listDiv = pileEl.querySelector(".pileList");
+        return { id: listDiv.id, index: idx + 1, cards: readList(listDiv) };
+      });
+    }
+    function getResults() {
       return {
-        meta:{prolificId,responseId,startedAt:window.__startedAt||new Date().toISOString(),finishedAt:new Date().toISOString(),userAgent:navigator.userAgent},
-        allCards:CARDS.slice(),
-        piles:Array.from(pilesGrid.children).map((p,idx)=>({id:p.querySelector(".pileList").id,index:idx+1,cards:readList(p.querySelector(".pileList"))})),
-        unplaced:readList(allA).concat(readList(allB))
+        meta: {
+          prolificId,
+          responseId,
+          startedAt: window.__startedAt || new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        },
+        allCards: CARDS.slice(),
+        piles: getPilesData(),
+        unplaced: readList(allList)
       };
     }
-    window.__startedAt=new Date().toISOString();
+    window.__startedAt = new Date().toISOString();
 
-    function notifyHeight(){
-      const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,document.documentElement.offsetHeight,document.body.offsetHeight);
-      parent.postMessage({type:'iframesizer:height',height:h},'*');
+    // Auto-resize (no inner scrolling)
+    function notifyHeight() {
+      const h = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.body.offsetHeight
+      );
+      parent.postMessage({ type: 'iframesizer:height', height: h }, '*');
     }
-    new ResizeObserver(()=>notifyHeight()).observe(document.body);
-    window.addEventListener('load',notifyHeight);setTimeout(notifyHeight,100);
+    new ResizeObserver(() => notifyHeight()).observe(document.body);
+    window.addEventListener('load', notifyHeight);
+    setTimeout(notifyHeight, 100);
 
-    // Handshake with Qualtrics
-    window.addEventListener('message',(e)=>{
-      const msg=e.data||{};
-      if(msg.type==='qualtrics:requestData'){
-        const payload=getResults();
-        const remaining=payload.unplaced.length;
-        parent.postMessage({type:'qualtrics:payload',payload:{...payload,remainingInAllCards:remaining}},targetOrigin);
+    // Qualtrics handshake
+    window.addEventListener('message', (e) => {
+      const msg = e.data || {};
+      if (msg && msg.type === 'qualtrics:requestData') {
+        const payload = getResults();
+        const remaining = payload.unplaced.length;
+        parent.postMessage(
+          { type: 'qualtrics:payload', payload: { ...payload, remainingInAllCards: remaining } },
+          targetOrigin
+        );
       }
     });
   </script>
 </body>
 </html>
+
