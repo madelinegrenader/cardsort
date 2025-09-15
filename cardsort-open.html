@@ -12,7 +12,7 @@
     /* Header row */
     .header { display:grid; grid-template-columns: 1fr auto; gap: var(--gap); align-items:start; margin-bottom: 8px; }
     h1 { font-size: 20px; margin: 0 0 8px 0; }
-    .instructions { color:#444; font-size: 13px; margin: 0; max-width: 900px; }
+    .instructions { color:#444; font-size: 16px; margin: 0; max-width: 900px; }
     .finishBtn {
       padding: 10px 14px; border-radius: 10px; border: 1px solid #d9d2ff;
       background: var(--purple); color: white; font-weight: 600; cursor: pointer;
@@ -35,7 +35,7 @@
     }
     .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-    .pilesGrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--gap); }
+    .pilesGrid {  display: grid;   grid-template-columns: repeat(auto-fit, minmax(280px, 320px));   gap: var(--gap);  justify-content: start; }
     .pile { background:#fafafa; border:1px solid #e6e7eb; border-radius:12px; padding:10px; min-height: 160px; }
     .pileHeader { display:flex; align-items:center; }
     .pileLabel { font-weight:600; font-size: 13px; }
@@ -68,8 +68,9 @@
         to you into piles on the right side. You may build as many piles as you think necessary.
       </p>
     </div>
-    <div>
+    <div style="text-align:right;">
       <button id="finishBtn" class="finishBtn">Finish &amp; continue</button>
+      <div class="hint">We’ll save your piles and return you to the survey.</div>
     </div>
   </div>
 
