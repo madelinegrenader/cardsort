@@ -5,124 +5,123 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Open Card Sort (Unlabeled Piles)</title>
 
- <style>
-  :root { --gap:16px; --purple:#a78bfa; --purple-text:#3b2f66; }
-  * { box-sizing: border-box; }
+  <style>
+    :root { --gap:16px; --purple:#a78bfa; --purple-text:#3b2f66; }
+    * { box-sizing: border-box; }
 
-  /* Make everything bigger and let content use the full iframe width */
-  body {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    margin: 0;                 /* remove inner margins so it can go edge-to-edge */
-    color:#222;
-    font-size: 18px;           /* larger base type */
-    line-height: 1.5;
-  }
+    /* Let the parent control height; avoid inner scrollbars */
+    html, body { margin:0; padding:0; height:auto; min-height:100%; overflow:visible; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:#222;
+      font-size: 18px;
+      line-height: 1.5;
+    }
 
-  /* Header row */
-  .header {
-    display:grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--gap);
-    align-items:start;
-    margin: 16px;              /* small padding around the header */
-  }
-  h1 { font-size: 22px; margin: 0 0 8px 0; }
-  .instructions { color:#444; font-size: 18px; line-height:1.6; margin: 0; max-width: none; }
+    /* Header: full-width instructions (no heading) */
+    .header {
+      display:block;
+      margin: 16px;
+    }
+    h1 { display:none; } /* remove the old heading */
+    .instructions {
+      color:#444; font-size: 18px; line-height:1.6; margin:0;
+      background:#fafafa; border:1px solid #eee; border-radius: 10px; padding: 14px 16px;
+    }
 
-  .finishBtn {
-    padding: 10px 14px; border-radius: 10px; border: 1px solid #d9d2ff;
-    background: var(--purple); color: white; font-weight: 600; cursor: pointer;
-    box-shadow: 0 1px 0 rgba(0,0,0,.05);
-  }
-  .finishBtn:hover { filter: brightness(0.95); }
-  .finishBtn:disabled { opacity: .6; cursor: default; }
+    /* Importance guide */
+    #importance-rail {
+      display:flex; align-items:center; gap:12px; padding: 10px 16px 0; color:#444; font-size:14px;
+    }
+    #importance-rail .rail {
+      flex:1; height:4px; border-radius:999px;
+      background: linear-gradient(to right, #444 0%, #444 100%); opacity:.25;
+    }
 
-  /* All cards panel — remove width cap so it fills the iframe */
-  .panel {
-    background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
-    padding: 20px; margin: 0 16px 16px; max-width: none;   /* <-- key change */
-  }
-  .panel h2 { font-size: 16px; margin: 0 0 10px 0; }
-  .allgrid {
-    display:grid;
-    grid-template-columns: repeat(2, minmax(320px, 1fr));  /* two roomy columns */
-    gap: var(--gap);
-  }
-  .list { min-height: 260px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
-  .card { font-size:16px; padding: 12px; margin: 10px 0; background: white; border: 1px solid #ddd; border-radius: 10px; cursor: grab; }
+    /* All cards panel — fill width */
+    .panel {
+      background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
+      padding: 20px; margin: 0 16px 16px; max-width: none;
+    }
+    .panel h2 { font-size: 16px; margin: 0 0 10px 0; }
+    .allgrid {
+      display:grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap: var(--gap);
+    }
+    .list { min-height: 260px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
+    .card { font-size:16px; padding: 12px; margin: 10px 0; background: white; border: 1px solid #ddd; border-radius: 10px; cursor: grab; }
 
-  /* Controls above piles */
-  .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 16px 8px; }
-  .addBtn, .delBtn {
-    padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
-  }
-  .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
+    /* Controls above piles */
+    .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 16px 8px; }
+    .addBtn, .delBtn {
+      padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
+    }
+    .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-  /* Piles: single horizontal row that can scroll sideways */
-  .pilesGrid {
-    display: flex;
-    flex-direction: row;
-    gap: var(--gap);
-    overflow-x: auto;               /* horizontal scroll if many piles */
-    padding: 0 16px 12px;           /* side padding + breathing room underneath */
-    width: 100%;
-  }
+    /* Piles strip */
+    .pilesGrid {
+      display: flex;
+      flex-direction: row;
+      gap: var(--gap);
+      overflow-x: auto;
+      padding: 0 16px 12px;
+      width: 100%;
+    }
+    .pile {
+      flex: 0 0 320px;
+      background:#fafafa;
+      border:1px solid #e6e7eb;
+      border-radius:12px;
+      padding:12px;
+      min-height: 200px;
+    }
+    .pileHeader { display:flex; align-items:center; }
+    .pileLabel { font-weight:600; font-size: 14px; }
+    .spacer { flex:1; }
+    .pileList { min-height: 160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-  /* Each pile is a fixed “card” width so they don't stretch */
-  .pile {
-    flex: 0 0 320px;                /* wider than before */
-    background:#fafafa;
-    border:1px solid #e6e7eb;
-    border-radius:12px;
-    padding:12px;
-    min-height: 200px;
-  }
-  .pileHeader { display:flex; align-items:center; }
-  .pileLabel { font-weight:600; font-size: 14px; }
-  .spacer { flex:1; }
-  .pileList { min-height: 160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
+    /* Exclude bin: shorter */
+    .exclude {
+      background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:12px;
+      margin: 0 16px 20px;
+    }
+    .exclude h3 { margin:0 0 8px 0; font-size:16px; color:#a33; }
+    .hint { font-size:13px; color:#666; }
 
-  /* Exclude bin at bottom, full width */
-  .exclude {
-    background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:12px;
-    margin: 0 16px 20px;            /* align with other sections */
-  }
-  .exclude h3 { margin:0 0 8px 0; font-size:16px; color:#a33; }
-  .hint { font-size:13px; color:#666; }
+    @media (max-width: 700px){
+      .header { margin: 12px; }
+      .panel { margin: 0 12px 12px; }
+      .controlsRow { margin: 12px; }
+      .allgrid { grid-template-columns: 1fr; }
+      .pile { flex-basis: 280px; }
+    }
 
-  /* Small screens */
-  @media (max-width: 700px){
-    .header { margin: 12px; }
-    .panel { margin: 0 12px 12px; }
-    .controlsRow { margin: 12px; }
-    .allgrid { grid-template-columns: 1fr; }
-    .pile { flex-basis: 280px; }
-  }
-</style>
-
+    /* Make the exclude list itself shorter with internal scroll if needed */
+    #exclude { max-height: 160px; overflow:auto; }
+  </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
-  <!-- Header with instructions (left) and Finish (right) -->
+
+  <!-- Full-width instructions (no H1) -->
   <div class="header">
-    <div>
-      <h1>Sort the cards into as many piles as you wish</h1>
-      <p class="instructions">
-        On these cards you will find descriptions of different goals and plans that one can have and find important in life.
-        Please read each of these cards carefully and sort the cards into several piles with respect to how important these
-        goals and plans are for you personally. Again, please begin on the left side with the pile of those goals and plans
-        which are most important to you. Please order those goals and plans that are less important or not important at all
-        to you into piles on the right side. You may build as many piles as you think necessary.
-      </p>
-    </div>
-    <div style="text-align:right;">
-      <button id="finishBtn" class="finishBtn">Finish &amp; continue</button>
-      <div class="hint">We’ll save your piles and return you to the survey.</div>
-    </div>
+    <p class="instructions">
+      On these cards you will find descriptions of different goals and plans that one can have and find important in life.
+      Please read each of these cards carefully and sort the cards into several piles with respect to how important these
+      goals and plans are for you personally. You may build as many piles as you think necessary.
+    </p>
   </div>
 
-  <!-- All cards panel (two columns spanning full width) -->
+  <!-- Importance guide -->
+  <div id="importance-rail" aria-hidden="true">
+    <span>Most important</span>
+    <div class="rail"></div>
+    <span>Less important or not important</span>
+  </div>
+
+  <!-- All cards -->
   <div class="panel" style="margin-bottom:14px;">
     <h2>All cards</h2>
     <div class="allgrid">
@@ -132,15 +131,14 @@
     <p class="hint" style="margin-top:8px;">Drag cards from here into your piles below.</p>
   </div>
 
-  <!-- Controls and piles (start with one pile on the left) -->
+  <!-- Controls + piles -->
   <div class="controlsRow">
     <button id="addPileBtn" class="addBtn">+ Add pile</button>
     <span class="hint">Create more piles and drag cards between them.</span>
   </div>
-
   <div id="pilesGrid" class="pilesGrid"></div>
 
-  <!-- Exclude bin at the bottom -->
+  <!-- Exclude bin -->
   <div class="exclude" style="margin-top:16px;">
     <h3>Exclude (discard)</h3>
     <div id="exclude" class="list"></div>
@@ -173,15 +171,14 @@
       "Have control over my feelings",             // 20
     ];
 
-
     // Optional enforcement
     const REQUIRE_ALL_PLACED = false;
 
     // Qualtrics/parent origin for postMessage security:
-    const targetOrigin = "https://nyu.qualtrics.com"; // ← EDIT ME (use your survey’s domain)
+    const targetOrigin = "https://nyu.qualtrics.com"; // ← EDIT if needed
 
     // =========================
-    // IDs from query string (optional)
+    // Query string IDs (optional)
     // =========================
     const qs = new URLSearchParams(location.search);
     const prolificId = qs.get("pid") || "";
@@ -203,10 +200,14 @@
       el.textContent = text;
       return el;
     }
-    // Distribute cards across the two All lists for a natural two-column layout
     CARDS.forEach((c, i) => (i % 2 === 0 ? allA : allB).appendChild(makeCard(c)));
 
-    const listOptions = { group: "cards", animation: 150, ghostClass: "dragGhost" };
+    const listOptions = {
+      group: "cards",
+      animation: 150,
+      ghostClass: "dragGhost",
+      onEnd: () => { notifyHeight(); dispatchEvent(new Event('cardsChanged')); }
+    };
     new Sortable(allA, listOptions);
     new Sortable(allB, listOptions);
     new Sortable(excludeList, listOptions);
@@ -251,12 +252,13 @@
       delBtn.addEventListener("click", () => {
         const hasCards = list.children.length > 0;
         if (hasCards && !confirm("This pile has cards. Delete anyway? Cards will move back to All cards.")) return;
-        // Move any cards back to All (alternate columns)
         Array.from(list.children).forEach((ch, i) => (i % 2 === 0 ? allA : allB).appendChild(ch));
         wrap.remove();
         renumberPiles();
+        notifyHeight();
       });
 
+      notifyHeight();
       return pileId;
     }
 
@@ -272,7 +274,9 @@
     // Start with exactly ONE pile
     createPile();
 
-    document.getElementById("addPileBtn").addEventListener("click", () => createPile());
+    document.getElementById("addPileBtn").addEventListener("click", () => {
+      createPile();
+    });
 
     // =========================
     // Data helpers
@@ -315,18 +319,37 @@
     }
 
     // =========================
-    // Finish → postMessage to Qualtrics
+    // Auto-resize → tell parent our height (no inner scrolling)
     // =========================
-    const finishBtn = document.getElementById("finishBtn");
-    finishBtn.addEventListener("click", () => {
-      const results = getResults();
-      if (!validate(results)) return;
+    function notifyHeight() {
+      const h = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.body.offsetHeight
+      );
+      parent.postMessage({ type: 'iframesizer:height', height: h }, '*');
+    }
+    const ro = new ResizeObserver(() => notifyHeight());
+    ro.observe(document.body);
+    window.addEventListener('load', notifyHeight);
+    setTimeout(notifyHeight, 100);
 
-      window.parent.postMessage({ type: "cardsort_done", payload: results }, targetOrigin);
-      finishBtn.disabled = true;
-      finishBtn.textContent = "Saving…";
-      setTimeout(() => { finishBtn.textContent = "You can close this tab if nothing happens."; }, 2000);
+    // =========================
+    // Qualtrics handshake (parent controls save/continue)
+    // =========================
+    window.addEventListener('message', (e) => {
+      const msg = e.data || {};
+      if (msg && msg.type === 'qualtrics:requestData') {
+        const payload = getResults();
+        if (!validate(payload)) return; // only blocks if REQUIRE_ALL_PLACED is true
+        // Include remaining count so parent can warn if desired
+        const remaining = payload.unplaced.length;
+        parent.postMessage({ type: 'qualtrics:payload', payload: { ...payload, remainingInAllCards: remaining } }, targetOrigin);
+      }
     });
+
+    // (Removed Finish button and any related UI)
   </script>
 </body>
 </html>
