@@ -5,69 +5,101 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Open Card Sort (Unlabeled Piles)</title>
 
-  <style>
-    :root { --gap:14px; --purple:#a78bfa; --purple-text:#3b2f66; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; color:#222; }
-    /* Header row */
-    .header { display:grid; grid-template-columns: 1fr auto; gap: var(--gap); align-items:start; margin-bottom: 8px; }
-    h1 { font-size: 20px; margin: 0 0 8px 0; }
-    .instructions { color:#444; font-size: 16px; margin: 0; max-width: 900px; }
-    .finishBtn {
-      padding: 10px 14px; border-radius: 10px; border: 1px solid #d9d2ff;
-      background: var(--purple); color: white; font-weight: 600; cursor: pointer;
-      box-shadow: 0 1px 0 rgba(0,0,0,.05);
-    }
-    .finishBtn:hover { filter: brightness(0.95); }
-    .finishBtn:disabled { opacity: .6; cursor: default; }
+ <style>
+  :root { --gap:16px; --purple:#a78bfa; --purple-text:#3b2f66; }
+  * { box-sizing: border-box; }
 
-    /* All cards panel */
-    .panel { background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px; padding: 12px; }
-    .panel h2 { font-size: 14px; margin: 0 0 8px 0; }
-    .allgrid { display:grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
-    .list { min-height: 220px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; }
-    .card { padding: 8px; margin: 6px 0; background: white; border: 1px solid #ddd; border-radius: 8px; cursor: grab; }
+  /* Make everything bigger and let content use the full iframe width */
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin: 0;                 /* remove inner margins so it can go edge-to-edge */
+    color:#222;
+    font-size: 18px;           /* larger base type */
+    line-height: 1.5;
+  }
 
-    /* Piles area */
-    .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 0 8px; }
-    .addBtn, .delBtn {
-      padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
-    }
-    .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
+  /* Header row */
+  .header {
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--gap);
+    align-items:start;
+    margin: 16px;              /* small padding around the header */
+  }
+  h1 { font-size: 22px; margin: 0 0 8px 0; }
+  .instructions { color:#444; font-size: 18px; line-height:1.6; margin: 0; max-width: none; }
 
-/* Piles: horizontal row, scroll sideways if they overflow */
-.pilesGrid {
-  display: flex;
-  flex-direction: row;
-  gap: var(--gap);
-  overflow-x: auto;      /* allows horizontal scrolling if piles don’t fit */
-  padding-bottom: 10px;  /* breathing room under piles */
-}
+  .finishBtn {
+    padding: 10px 14px; border-radius: 10px; border: 1px solid #d9d2ff;
+    background: var(--purple); color: white; font-weight: 600; cursor: pointer;
+    box-shadow: 0 1px 0 rgba(0,0,0,.05);
+  }
+  .finishBtn:hover { filter: brightness(0.95); }
+  .finishBtn:disabled { opacity: .6; cursor: default; }
 
-/* Make each pile a fixed card-like width */
-.pile {
-  flex: 0 0 280px;       /* each pile is ~280px wide, doesn’t stretch */
-  background:#fafafa;
-  border:1px solid #e6e7eb;
-  border-radius:12px;
-  padding:10px;
-  min-height: 160px;
-}
-    .pileHeader { display:flex; align-items:center; }
-    .pileLabel { font-weight:600; font-size: 13px; }
-    .spacer { flex:1; }
-    .pileList { min-height: 140px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:10px; margin-top:8px; }
+  /* All cards panel — remove width cap so it fills the iframe */
+  .panel {
+    background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
+    padding: 20px; margin: 0 16px 16px; max-width: none;   /* <-- key change */
+  }
+  .panel h2 { font-size: 16px; margin: 0 0 10px 0; }
+  .allgrid {
+    display:grid;
+    grid-template-columns: repeat(2, minmax(320px, 1fr));  /* two roomy columns */
+    gap: var(--gap);
+  }
+  .list { min-height: 260px; background: #fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; }
+  .card { font-size:16px; padding: 12px; margin: 10px 0; background: white; border: 1px solid #ddd; border-radius: 10px; cursor: grab; }
 
-    /* Exclude bin at bottom */
-    .exclude { background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:10px; }
-    .exclude h3 { margin:0 0 8px 0; font-size:14px; color:#a33; }
-    .hint { font-size:12px; color:#666; }
+  /* Controls above piles */
+  .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 16px 8px; }
+  .addBtn, .delBtn {
+    padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
+  }
+  .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
-    /* Small screens */
-    @media (max-width:700px){
-      .allgrid { grid-template-columns: 1fr; }
-    }
-  </style>
+  /* Piles: single horizontal row that can scroll sideways */
+  .pilesGrid {
+    display: flex;
+    flex-direction: row;
+    gap: var(--gap);
+    overflow-x: auto;               /* horizontal scroll if many piles */
+    padding: 0 16px 12px;           /* side padding + breathing room underneath */
+    width: 100%;
+  }
+
+  /* Each pile is a fixed “card” width so they don't stretch */
+  .pile {
+    flex: 0 0 320px;                /* wider than before */
+    background:#fafafa;
+    border:1px solid #e6e7eb;
+    border-radius:12px;
+    padding:12px;
+    min-height: 200px;
+  }
+  .pileHeader { display:flex; align-items:center; }
+  .pileLabel { font-weight:600; font-size: 14px; }
+  .spacer { flex:1; }
+  .pileList { min-height: 160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
+
+  /* Exclude bin at bottom, full width */
+  .exclude {
+    background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:12px;
+    margin: 0 16px 20px;            /* align with other sections */
+  }
+  .exclude h3 { margin:0 0 8px 0; font-size:16px; color:#a33; }
+  .hint { font-size:13px; color:#666; }
+
+  /* Small screens */
+  @media (max-width: 700px){
+    .header { margin: 12px; }
+    .panel { margin: 0 12px 12px; }
+    .controlsRow { margin: 12px; }
+    .allgrid { grid-template-columns: 1fr; }
+    .pile { flex-basis: 280px; }
+  }
+</style>
+
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
