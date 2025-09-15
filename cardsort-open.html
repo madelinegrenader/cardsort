@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Open Card Sort (Unlabeled Piles)</title>
+
+  <style>
+    :root { --gap:12px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+    h1 { font-size: 20px; margin: 0 0 6px 0; }
+    .sub { color:#555; font-size: 13px; margin: 0 0 14px 0; }
+    .toolbar { display:flex; gap:10px; align-items:center; margin: 8px 0 14px; flex-wrap: wrap; }
+    button { padding: 9px 12px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    button:hover { background:#f5f5f5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--gap); align-items: start; }
+    .pile { background: #fafafa; border: 1px solid #ddd; border-radius: 10px; padding: 10px; min-height: 120px; position: relative; }
+    .pile-header { display:flex; gap:8px; align-items:center; margin-bottom: 6px; }
+    .pile-label { font-weight: 600; font-size: 13px; }
+    .pile-btn { font-size: 12px; padding: 6px 8px; margin-left: auto; }
+    .pile-list { min-height: 120px; }
+    .card { padding: 8px; margin: 6px 0; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: grab; }
+    .hint { font-size: 12px; color:#666; }
+    .footer { margin-top: 14px; display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .danger { border-color:#f4c2c2; background:#fff6f6; }
+    .pile-title { font-weight: 600; font-size: 13px; margin: 0 0 6px 0; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+    .wrap { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+    .msg { font-size: 12px; color:#b00; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+</head>
+<body>
+  <h1>Sort the cards into as many piles as you wish</h1>
+  <p class="sub">Drag cards from “All cards” into piles. You may create or delete piles at any time. If a card doesn’t fit anywhere, drop it in <b>Exclude</b>.</p>
+
+  <div class="toolbar">
+    <button id="addPileBtn">+ Add pile</button>
+    <button id="finishBtn">Finish &amp; continue</button>
+    <span class="hint">We’ll save your piles and return you to the survey.</span>
+  </div>
+
+  <div class="wrap">
+    <div class="row">
+      <div class="pile">
+        <div class="pile-title">All cards</div>
+        <div id="all" class="pile-list"></div>
+        <p class="hint">Drag cards from here into your piles.</p>
+      </div>
+
+      <div class="pile danger">
+        <div class="pile-title">Exclude (discard)</div>
+        <div id="exclude" class="pile-list"></div>
+        <p class="hint">Drop here to exclude a card from your piles.</p>
+      </div>
+    </div>
+
+    <div id="pilesGrid" class="grid"></div>
+  </div>
+
+  <div class="footer">
+    <span id="validationMsg" class="msg" style="display:none;"></span>
+  </div>
+
+  <script>
+    // =========================
+    // CONFIG — EDIT THESE
+    // =========================
+    const CARDS = [
+      // ← EDIT ME: replace with your stimuli (each string is one “card”)
+      "Have strong power of discernment",
+      "Not depend on someone else’s feelings",
+      "Determine my future by myself",
+      "Be financially independent",
+      "Be well educated and knowledgeable",
+      "Leave my mark on this world",
+      "Give my knowledge/experience to others",
+      "Help others find their purpose in life",
+      "Know myself and my feelings very well",
+      "Have control over my feelings",
+      "Be autonomous in my feelings",
+      "Determine my future by myself"
+    ];
+
+    // Optional requirements (set to true to enforce)
+    const REQUIRE_AT_LEAST_ONE_PILE = false;
+    const REQUIRE_TWO_OR_MORE_PILES = false;
+    const REQUIRE_ALL_PLACED = false; // if true, no cards may remain in “All cards”
+
+    // Qualtrics/parent origin for postMessage security:
+    const targetOrigin = "*"; // ← EDIT ME later to e.g. "https://nyu.qualtrics.com"
+
+    // =========================
+    // URL params (Prolific/Qualtrics IDs)
+    // =========================
+    const qs = new URLSearchParams(location.search);
+    const prolificId = qs.get("pid") || "";
+    const responseId = qs.get("rid") || "";
+
+    // =========================
+    // Render cards & lists
+    // =========================
+    const allList = document.getElementById("all");
+    const excludeList = document.getElementById("exclude");
+    const pilesGrid = document.getElementById("pilesGrid");
+    let pileCounter = 0;
+
+    function makeCard(text) {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.dataset.card = text;
+      el.textContent = text;
+      return el;
+    }
+    CARDS.forEach(c => allList.appendChild(makeCard(c)));
+
+    const listOptions = { group: "cards", animation: 150, ghostClass: "dragGhost" };
+    new Sortable(allList, listOptions);
+    new Sortable(excludeList, listOptions);
+
+    function createPile() {
+      pileCounter++;
+      const pileId = "pile_" + pileCounter;
+
+      const pile = document.createElement("div");
+      pile.className = "pile";
+
+      const header = document.createElement("div");
+      header.className = "pile-header";
+
+      const label = document.createElement("div");
+      label.className = "pile-label";
+      label.textContent = "Pile " + pileCounter; // unlabeled piles (just an index)
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "pile-btn";
+      delBtn.textContent = "Delete pile";
+
+      const list = document.createElement("div");
+      list.className = "pile-list";
+      list.id = pileId;
+
+      header.appendChild(label);
+      header.appendChild(delBtn);
+      pile.appendChild(header);
+      pile.appendChild(list);
+      pilesGrid.appendChild(pile);
+
+      new Sortable(list, listOptions);
+
+      delBtn.addEventListener("click", () => {
+        const hasCards = list.children.length > 0;
+        if (hasCards && !confirm("This pile has cards. Delete anyway? Cards will move back to ‘All cards’."))
+          return;
+        Array.from(list.children).forEach(ch => allList.appendChild(ch));
+        pile.remove();
+        renumberPiles(); // keep numbering tidy
+      });
+
+      return pileId;
+    }
+
+    function renumberPiles() {
+      const pileEls = Array.from(pilesGrid.children);
+      pileCounter = 0;
+      pileEls.forEach(el => {
+        pileCounter++;
+        el.querySelector(".pile-label").textContent = "Pile " + pileCounter;
+      });
+    }
+
+    // Start with two empty piles (participants can delete/add)
+    createPile();
+    createPile();
+
+    document.getElementById("addPileBtn").addEventListener("click", () => createPile());
+
+    // =========================
+    // Collect results
+    // =========================
+    function readList(el) {
+      return Array.from(el.children).map(ch => ch.dataset.card);
+    }
+
+    function getPilesData() {
+      const piles = [];
+      Array.from(pilesGrid.children).forEach((pileEl, idx) => {
+        const listDiv = pileEl.querySelector(".pile-list");
+        piles.push({
+          id: listDiv.id,
+          index: idx + 1,        // 1-based order shown to participant
+          cards: readList(listDiv)
+        });
+      });
+      return piles;
+    }
+
+    function getResults() {
+      return {
+        meta: {
+          prolificId,
+          responseId,
+          startedAt: window.__startedAt || new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        },
+        allCards: CARDS.slice(),
+        exclude: readList(excludeList),
+        piles: getPilesData(),
+        unplaced: readList(allList) // remaining in “All cards”
+      };
+    }
+    window.__startedAt = new Date().toISOString();
+
+    // =========================
+    // Validation (optional)
+    // =========================
+    function validate(results) {
+      const msgEl = document.getElementById("validationMsg");
+      msgEl.style.display = "none";
+      msgEl.textContent = "";
+
+      const numPiles = results.piles.length;
+      if (REQUIRE_AT_LEAST_ONE_PILE && numPiles < 1) {
+        msgEl.textContent = "Please create at least one pile.";
+        msgEl.style.display = "inline";
+        return false;
+      }
+      if (REQUIRE_TWO_OR_MORE_PILES && numPiles < 2) {
+        msgEl.textContent = "Please create at least two piles.";
+        msgEl.style.display = "inline";
+        return false;
+      }
+      if (REQUIRE_ALL_PLACED && results.unplaced.length > 0) {
+        msgEl.textContent = "Please sort all cards into piles or Exclude before continuing.";
+        msgEl.style.display = "inline";
+        return false;
+      }
+      return true;
+    }
+
+    // =========================
+    // Finish → postMessage to Qualtrics
+    // =========================
+    document.getElementById("finishBtn").addEventListener("click", () => {
+      const results = getResults();
+      if (!validate(results)) return;
+
+      // Send to parent (Qualtrics page)
+      window.parent.postMessage({ type: "cardsort_done", payload: results }, targetOrigin);
+
+      // Minor UX feedback
+      const btn = document.getElementById("finishBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+      setTimeout(() => { btn.textContent = "You can close this tab if nothing happens."; }, 2000);
+    });
+  </script>
+</body>
+</html>
