@@ -29,15 +29,6 @@
       background:#fafafa; border:1px solid #eee; border-radius: 10px; padding: 14px 16px;
     }
 
-    /* Importance guide */
-    #importance-rail {
-      display:flex; align-items:center; gap:12px; padding: 10px 16px 0; color:#444; font-size:14px;
-    }
-    #importance-rail .rail {
-      flex:1; height:4px; border-radius:999px;
-      background: linear-gradient(to right, #444 0%, #444 100%); opacity:.25;
-    }
-
     /* All cards panel — fill width */
     .panel {
       background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
@@ -138,12 +129,21 @@
   </div>
   <div id="pilesGrid" class="pilesGrid"></div>
 
-  <!-- Exclude bin -->
-  <div class="exclude" style="margin-top:16px;">
-    <h3>Exclude (discard)</h3>
-    <div id="exclude" class="list"></div>
-    <p class="hint">Drop here to exclude a card from your piles.</p>
-  </div>
+<!-- Importance guide -->
+<div id="importance-rail" aria-hidden="true">
+  <span>Most important</span>
+  <div class="rail"></div>
+  <span>Less important or not important</span>
+</div>
+  
+<!-- Exclude bin -->
+<div class="exclude" style="margin-top:16px;">
+  <h3>Exclude (discard)</h3>
+  <!-- Set max-height ≈ one card, add scroll if more cards are dropped -->
+  <div id="exclude" class="list" style="max-height:64px; overflow:auto;"></div>
+  <p class="hint">Drop here to exclude a card from your piles.</p>
+</div>
+
 
   <script>
     // =========================
