@@ -9,7 +9,6 @@
     :root { --gap:16px; --purple:#a78bfa; --purple-text:#3b2f66; }
     * { box-sizing: border-box; }
 
-    /* Let the parent control height; avoid inner scrollbars */
     html, body { margin:0; padding:0; height:auto; min-height:100%; overflow:visible; }
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -18,12 +17,8 @@
       line-height: 1.5;
     }
 
-    /* Header: full-width instructions (no heading) */
-    .header {
-      display:block;
-      margin: 16px;
-    }
-    h1 { display:none; } /* remove the old heading */
+    /* Header: full-width instructions */
+    .header { display:block; margin: 16px; }
     .instructions {
       color:#444; font-size: 18px; line-height:1.6; margin:0;
       background:#fafafa; border:1px solid #eee; border-radius: 10px; padding: 14px 16px;
@@ -34,7 +29,13 @@
       background:#f8f9fb; border:1px solid #e6e7eb; border-radius: 12px;
       padding: 20px; margin: 0 16px 16px; max-width: none;
     }
-    .panel h2 { font-size: 16px; margin: 0 0 10px 0; }
+    .panelHead {
+      display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+      margin: 0 0 10px 0;
+    }
+    .panelHead h2 { font-size: 16px; margin:0; }
+    .inlineHint { font-size:13px; color:#666; margin-left:6px; }
+
     .allgrid {
       display:grid;
       grid-template-columns: repeat(2, minmax(320px, 1fr));
@@ -44,9 +45,14 @@
     .card { font-size:16px; padding: 12px; margin: 10px 0; background: white; border: 1px solid #ddd; border-radius: 10px; cursor: grab; }
 
     /* Controls above piles */
-    .controlsRow { display:flex; gap:10px; align-items:center; margin: 14px 16px 8px; }
+    .controlsRow {
+      display:flex; gap:14px; align-items:flex-start; margin: 14px 16px 8px;
+      flex-wrap:wrap;
+    }
+    .controlsText { flex: 1 1 520px; font-size:14px; color:#444; }
     .addBtn, .delBtn {
       padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:#fff; cursor:pointer;
+      white-space:nowrap;
     }
     .addBtn:hover, .delBtn:hover { background:#f4f4f4; }
 
@@ -72,13 +78,27 @@
     .spacer { flex:1; }
     .pileList { min-height: 160px; background:#fff; border:1px dashed #d4d7dd; border-radius:10px; padding:12px; margin-top:8px; }
 
-    /* Exclude bin: shorter */
+    /* Importance rail (below piles) */
+    #importance-rail {
+      display:flex; align-items:center; gap:12px; padding: 6px 16px 0; color:#444; font-size:14px;
+      margin-bottom: 8px;
+    }
+    #importance-rail .rail {
+      flex:1; height:4px; border-radius:999px;
+      background: linear-gradient(to right, #444 0%, #444 100%); opacity:.25;
+    }
+
+    /* Exclude bin: shorter + inline hint in header */
     .exclude {
       background:#fff6f6; border:1px solid #f5c8c8; border-radius:12px; padding:12px;
       margin: 0 16px 20px;
     }
-    .exclude h3 { margin:0 0 8px 0; font-size:16px; color:#a33; }
-    .hint { font-size:13px; color:#666; }
+    .excludeHead { display:flex; align-items:baseline; gap:10px; margin:0 0 8px 0; }
+    .excludeHead h3 { margin:0; font-size:16px; color:#a33; }
+    .hint, .inlineHint { font-size:13px; color:#666; }
+
+    /* one-card tall exclude list */
+    #exclude { max-height:64px; overflow:auto; }
 
     @media (max-width: 700px){
       .header { margin: 12px; }
@@ -87,106 +107,98 @@
       .allgrid { grid-template-columns: 1fr; }
       .pile { flex-basis: 280px; }
     }
-
-    /* Make the exclude list itself shorter with internal scroll if needed */
-    #exclude { max-height: 160px; overflow:auto; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
 
-  <!-- Full-width instructions (no H1) -->
+  <!-- Full-width instructions -->
   <div class="header">
     <p class="instructions">
       On these cards you will find descriptions of different goals and plans that one can have and find important in life.
       Please read each of these cards carefully and sort the cards into several piles with respect to how important these
-      goals and plans are for you personally. You may build as many piles as you think necessary.
+      goals and plans are for you personally. Again, please begin on the left side with the pile of those goals and plans
+      which are most important to you. Please order those goals and plans that are less important or not important at all
+      to you into piles on the right side. You may build as many piles as you think necessary.
     </p>
   </div>
 
-  <!-- Importance guide -->
+  <!-- All cards -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panelHead">
+      <h2>All cards</h2>
+      <span class="inlineHint">Drag cards from here into your piles below.</span>
+    </div>
+    <div class="allgrid">
+      <div id="allA" class="list"></div>
+      <div id="allB" class="list"></div>
+    </div>
+  </div>
+
+  <!-- Controls + piles -->
+  <div class="controlsRow">
+    <div class="controlsText">
+      Again, please begin on the left side with the pile of those goals and plans which are most important to you.
+      Please order those goals and plans that are less important or not important at all to you into piles on the right side.
+      You may build as many piles as you think necessary.
+    </div>
+    <button id="addPileBtn" class="addBtn">+ Add pile</button>
+  </div>
+
+  <div id="pilesGrid" class="pilesGrid"></div>
+
+  <!-- Importance guide BELOW piles -->
   <div id="importance-rail" aria-hidden="true">
     <span>Most important</span>
     <div class="rail"></div>
     <span>Less important or not important</span>
   </div>
 
-  <!-- All cards -->
-  <div class="panel" style="margin-bottom:14px;">
-    <h2>All cards</h2>
-    <div class="allgrid">
-      <div id="allA" class="list"></div>
-      <div id="allB" class="list"></div>
+  <!-- Exclude bin -->
+  <div class="exclude" style="margin-top:8px;">
+    <div class="excludeHead">
+      <h3>Exclude</h3>
+      <span class="inlineHint">Drop here to exclude a card from your piles.</span>
     </div>
-    <p class="hint" style="margin-top:8px;">Drag cards from here into your piles below.</p>
+    <div id="exclude" class="list"></div>
   </div>
-
-  <!-- Controls + piles -->
-  <div class="controlsRow">
-    <button id="addPileBtn" class="addBtn">+ Add pile</button>
-    <span class="hint">Create more piles and drag cards between them.</span>
-  </div>
-  <div id="pilesGrid" class="pilesGrid"></div>
-
-<!-- Importance guide -->
-<div id="importance-rail" aria-hidden="true">
-  <span>Most important</span>
-  <div class="rail"></div>
-  <span>Less important or not important</span>
-</div>
-  
-<!-- Exclude bin -->
-<div class="exclude" style="margin-top:16px;">
-  <h3>Exclude (discard)</h3>
-  <!-- Set max-height ≈ one card, add scroll if more cards are dropped -->
-  <div id="exclude" class="list" style="max-height:64px; overflow:auto;"></div>
-  <p class="hint">Drop here to exclude a card from your piles.</p>
-</div>
-
 
   <script>
     // =========================
     // CONFIG — EDIT THESE
     // =========================
     const CARDS = [
-      "Have strong power of discernment",          // 1
-      "Not depend on someone else’s feelings",     // 2
-      "Determine my future by myself",             // 3
-      "Be autonomous in my feelings",              // 4
-      "Receive approval for my work",              // 5
-      "Have good friends who accept me the way I am", // 6
-      "Be with people who set high value on my opinion", // 7
-      "Have close friends who trust me",           // 8
-      "Be able to confide in a close friend at any time", // 10
-      "Receive good advice on important decision", // 11
-      "Not feel lonely",                           // 12
-      "Leave my mark on this world",               // 13
-      "Be available to others who need to be comforted", // 14
-      "Give my knowledge/experience on to others", // 15
-      "Help others to find their purpose in life", // 16
-      "Have large experience of life",             // 17
-      "Know myself and my feelings very well",     // 18
-      "Be well educated and knowledgeable",        // 19
-      "Have control over my feelings",             // 20
+      "Have strong power of discernment",
+      "Not depend on someone else’s feelings",
+      "Determine my future by myself",
+      "Be autonomous in my feelings",
+      "Receive approval for my work",
+      "Have good friends who accept me the way I am",
+      "Be with people who set high value on my opinion",
+      "Have close friends who trust me",
+      "Be able to confide in a close friend at any time",
+      "Receive good advice on important decision",
+      "Not feel lonely",
+      "Leave my mark on this world",
+      "Be available to others who need to be comforted",
+      "Give my knowledge/experience on to others",
+      "Help others to find their purpose in life",
+      "Have large experience of life",
+      "Know myself and my feelings very well",
+      "Be well educated and knowledgeable",
+      "Have control over my feelings",
     ];
 
-    // Optional enforcement
     const REQUIRE_ALL_PLACED = false;
+    const targetOrigin = "https://nyu.qualtrics.com"; // update if your brand domain differs
 
-    // Qualtrics/parent origin for postMessage security:
-    const targetOrigin = "https://nyu.qualtrics.com"; // ← EDIT if needed
-
-    // =========================
-    // Query string IDs (optional)
-    // =========================
+    // IDs from query string (optional)
     const qs = new URLSearchParams(location.search);
     const prolificId = qs.get("pid") || "";
     const responseId = qs.get("rid") || "";
 
-    // =========================
     // Build All-cards (two lists) and Exclude
-    // =========================
     const allA = document.getElementById("allA");
     const allB = document.getElementById("allB");
     const excludeList = document.getElementById("exclude");
@@ -212,9 +224,7 @@
     new Sortable(allB, listOptions);
     new Sortable(excludeList, listOptions);
 
-    // =========================
     // Piles (unlabeled)
-    // =========================
     function createPile() {
       pileCounter++;
       const pileId = "pile_" + pileCounter;
@@ -278,9 +288,7 @@
       createPile();
     });
 
-    // =========================
     // Data helpers
-    // =========================
     function readList(el) {
       return Array.from(el.children).map(ch => ch.dataset.card);
     }
@@ -318,9 +326,7 @@
       return true;
     }
 
-    // =========================
     // Auto-resize → tell parent our height (no inner scrolling)
-    // =========================
     function notifyHeight() {
       const h = Math.max(
         document.documentElement.scrollHeight,
@@ -335,21 +341,16 @@
     window.addEventListener('load', notifyHeight);
     setTimeout(notifyHeight, 100);
 
-    // =========================
     // Qualtrics handshake (parent controls save/continue)
-    // =========================
     window.addEventListener('message', (e) => {
       const msg = e.data || {};
       if (msg && msg.type === 'qualtrics:requestData') {
         const payload = getResults();
         if (!validate(payload)) return; // only blocks if REQUIRE_ALL_PLACED is true
-        // Include remaining count so parent can warn if desired
         const remaining = payload.unplaced.length;
         parent.postMessage({ type: 'qualtrics:payload', payload: { ...payload, remainingInAllCards: remaining } }, targetOrigin);
       }
     });
-
-    // (Removed Finish button and any related UI)
   </script>
 </body>
 </html>
