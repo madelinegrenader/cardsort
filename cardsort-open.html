@@ -15,7 +15,7 @@
   .instructions{
     color:#444; font-size:18px; line-height:1.6;
     background:#fafafa; border:1px solid #eee; border-radius:10px; padding:14px 16px; margin:0;
-    -webkit-user-select: text; user-select: text; /* still allow copying instructions */
+    -webkit-user-select: text; user-select: text; /* allow copying instructions */
   }
 
   /* Always two columns; center and cap the board width */
@@ -29,9 +29,10 @@
     margin: 0 auto;
   }
 
-  /* Disable text selection in the interactive area */
+  /* Disable text selection in the interactive area (prevents highlight while dragging) */
   .panel, .panel *,.rightPane, .rightPane *, .layout {
     -webkit-user-select: none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* LEFT */
@@ -128,6 +129,11 @@
   </div>
 
   <script>
+    /* ---------- Parent origin (dynamic) ---------- */
+    const parentOrigin = (() => {
+      try { return new URL(document.referrer).origin; } catch (e) { return '*'; }
+    })();
+
     /* ---------- Config ---------- */
     const CARDS = [
       "Have strong power of discernment","Not depend on someone else’s feelings","Determine my future by myself",
@@ -138,7 +144,6 @@
       "Help others to find their purpose in life","Have large experience of life","Know myself and my feelings very well",
       "Be well educated and knowledgeable","Have control over my feelings"
     ];
-    const targetOrigin = "https://nyu.qualtrics.com";
 
     const allList  = document.getElementById("allList");
     const pilesCol = document.getElementById("pilesColumn");
@@ -172,7 +177,6 @@
       header.append(label, spacer);
       wrap.append(header, list);
 
-      // Only add delete button if allowed
       if (!noDelete) {
         const delBtn = document.createElement("button");
         delBtn.className="delBtn"; delBtn.type="button"; delBtn.textContent="Delete pile";
@@ -223,7 +227,7 @@
       const msg=e.data||{};
       if(msg.type==='qualtrics:requestData'){
         const payload=getResults();
-        parent.postMessage({ type:'qualtrics:payload', payload:{ ...payload, remainingInAllCards: payload.unplaced.length } }, targetOrigin);
+        parent.postMessage({ type:'qualtrics:payload', payload:{ ...payload, remainingInAllCards: payload.unplaced.length } }, parentOrigin);
       }
     });
 
@@ -235,10 +239,13 @@
         document.documentElement.offsetHeight,
         document.body.offsetHeight
       );
-      parent.postMessage({ type:'iframesizer:height', height:h }, targetOrigin);
+      // Newer message type (your parent script supports this)
+      parent.postMessage({ type:'qualtrics-iframe-height', height:h }, parentOrigin);
+      // If you still want legacy support, uncomment the next line too:
+      // parent.postMessage({ type:'iframesizer:height', height:h }, parentOrigin);
     }
     const ro = new ResizeObserver(()=>notifyHeight());
-    ro.observe(document.body);
+    ro.observe(document.documentElement);
     window.addEventListener('load', ()=>{ document.body.style.minHeight = '1200px'; notifyHeight(); });
     setTimeout(notifyHeight, 120);
   </script>
